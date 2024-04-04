@@ -1,0 +1,40 @@
+; Receive a mono or stereo I2S audio stream as stereo
+; This is 64 bits per sample; can be altered by modifying the "set" params,
+; or made programmable by replacing "set x" with "mov x, y" and using Y as a config register.
+;
+; Autopull must be enabled, with threshold set to 64.
+; Since I2S is MSB-first, shift direction should be to left.
+; Hence the format of the FIFO word is:
+;
+; | 31   :   0 | 31   :    0 |
+; | sample ws=0 | sample ws=1 |
+;
+; Data is output at 1 bit per clock. Use clock divider to adjust frequency.
+; Fractional divider will probably be needed to get correct bit clock period,
+; but for common syslck freqs this should still give a constant word select period.
+;
+; One output pin is used for the data output.
+; Two side-set pins are used. Bit 0 is clock, bit 1 is word select.
+
+; Send 32 bit words to the PIO for mono, 64 bit words for stereo
+
+.program audio_i2s_rx_32b
+.side_set 2
+                    ;            /--- LRCLK
+                    ;            |/-- BCLK
+                    ;            ||
+    set x, 30             side 0b00
+left_channel:                   
+    in pins, 1            side 0b01
+    jmp x-- left_channel  side 0b00
+    in pins, 1            side 0b11
+
+    set x, 30             side 0b10
+right_channel:
+    in pins, 1            side 0b11
+    jmp x-- right_channel side 0b10
+    in pins, 1            side 0b01
+
+% c-sdk {
+
+%}
