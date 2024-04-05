@@ -32,7 +32,7 @@
 
 #include "main.h"
 #include "pico/machine_i2s.h"
-#include "pico/volume_ctrl.hpp"
+#include "pico/volume_ctrl.h"
 
 // Pointer to I2S handler
 machine_i2s_obj_t* speaker_i2s0 = NULL;
@@ -114,6 +114,13 @@ int main(void)
   usb_headset_init();
   refresh_i2s_connections();
 
+  for(int i=0; i<(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1); i++)
+  {
+    current_settings.volume[i] = DEFAULT_VOLUME;
+    current_settings.mute[i] = 0;
+    current_settings.volume_db[i] = vol_to_db_convert(current_settings.mute[i], current_settings.volume[i]);
+  }
+
   while (1) {
     usb_headset_task();
     led_blinking_task();
@@ -172,10 +179,10 @@ void usb_headset_tud_audio_rx_done_pre_read_handler(uint8_t rhport, uint16_t n_b
         int16_t left = in[i*2 + 0];
         int16_t right = in[i*2 + 1];
 
-        if(volume_db_left) left = usb_to_i2s_16b_sample_convert(left, volume_db_left);
-        if(volume_db_master) left = usb_to_i2s_16b_sample_convert(left, volume_db_master);
-        if(volume_db_right) right = usb_to_i2s_16b_sample_convert(right, volume_db_right);
-        if(volume_db_master) right = usb_to_i2s_16b_sample_convert(right, volume_db_master);
+        left = usb_to_i2s_16b_sample_convert(left, volume_db_left);
+        left = usb_to_i2s_16b_sample_convert(left, volume_db_master);
+        right = usb_to_i2s_16b_sample_convert(right, volume_db_right);
+        right = usb_to_i2s_16b_sample_convert(right, volume_db_master);
 
         spk_16b_i2s_buffer[i].left  = left;
         spk_16b_i2s_buffer[i].right = right;
@@ -193,10 +200,10 @@ void usb_headset_tud_audio_rx_done_pre_read_handler(uint8_t rhport, uint16_t n_b
         int32_t left = in[i*2 + 0];
         int32_t right = in[i*2 + 1];
 
-        if(volume_db_left) left = usb_to_i2s_32b_sample_convert(left, volume_db_left);
-        if(volume_db_master) left = usb_to_i2s_32b_sample_convert(left, volume_db_master);
-        if(volume_db_right) right = usb_to_i2s_32b_sample_convert(right, volume_db_right);
-        if(volume_db_master) right = usb_to_i2s_32b_sample_convert(right, volume_db_master);
+        left = usb_to_i2s_32b_sample_convert(left, volume_db_left);
+        left = usb_to_i2s_32b_sample_convert(left, volume_db_master);
+        right = usb_to_i2s_32b_sample_convert(right, volume_db_right);
+        right = usb_to_i2s_32b_sample_convert(right, volume_db_master);
 
         spk_32b_i2s_buffer[i].left  = left;
         spk_32b_i2s_buffer[i].right = right;
@@ -236,13 +243,13 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
         if (current_settings.resolution == 16)
         {
           //mic_buf[i] = ((mic_i2s_buffer[i].left >> 8) + (mic_i2s_buffer[i].right >> 8)) / 2;
-          mic_buf_16b[i] = (sample_tmp >> 8) >> 1;
+          mic_buf_16b[i] = (sample_tmp >> 8);
         }
         else if (current_settings.resolution == 24)
         {
           //mic_buf[i] = (mic_i2s_buffer[i].left + mic_i2s_buffer[i].right) / 2;
 
-          mic_buf_32b[i] = (sample_tmp << 8) >> 1;
+          mic_buf_32b[i] = (sample_tmp << 8);
         }
       }
     }

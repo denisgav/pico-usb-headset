@@ -41,7 +41,7 @@
 #include "usb_microphone.h"
 
 #include "pico/pdm_microphone.h"
-#include "pico/volume_ctrl.hpp"
+#include "pico/volume_ctrl.h"
 
 //-------------------------
 // Onboard LED

@@ -24,6 +24,7 @@
  */
 
 #include "usb_microphone.h"
+#include "pico/volume_ctrl.h"
 
 // Audio controls
 // Current states
@@ -52,6 +53,12 @@ void usb_microphone_init()
   sampleFreqRng.subrange[0].bMin = SAMPLE_RATE;
   sampleFreqRng.subrange[0].bMax = SAMPLE_RATE;
   sampleFreqRng.subrange[0].bRes = 0;
+
+  for(int i=0; i<(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX + 1); i++)
+  {
+    volume[i] = DEFAULT_VOLUME;
+    mute[i] = 0;
+  }
 }
 
 void usb_microphone_set_tx_ready_handler(usb_microphone_tx_ready_handler_t handler)
@@ -258,9 +265,9 @@ bool tud_audio_get_req_entity_cb(uint8_t rhport, tusb_control_request_t const * 
 	    audio_control_range_2_n_t(1) ret;
 
 	    ret.wNumSubRanges = 1;
-	    ret.subrange[0].bMin = -90; 	// -90 dB
-	    ret.subrange[0].bMax = 90;		// +90 dB
-	    ret.subrange[0].bRes = 1; 		// 1 dB steps
+	    ret.subrange[0].bMin = MIN_VOLUME;
+	    ret.subrange[0].bMax = MAX_VOLUME;
+	    ret.subrange[0].bRes = VOLUME_RESOLUTION;
 
 	    return tud_audio_buffer_and_schedule_control_xfer(rhport, p_request, (void*)&ret, sizeof(ret));
 

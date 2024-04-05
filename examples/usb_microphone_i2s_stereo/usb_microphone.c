@@ -1,4 +1,5 @@
 #include "usb_microphone.h"
+#include "pico/volume_ctrl.h"
 
 //----------------------------------------
 // local variables:
@@ -35,6 +36,12 @@ void usb_microphone_init()
   sampleFreqRng.subrange[0].bMin = AUDIO_SAMPLE_RATE;
   sampleFreqRng.subrange[0].bMax = AUDIO_SAMPLE_RATE;
   sampleFreqRng.subrange[0].bRes = 0;
+
+  for(int i=0; i<(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX + 1); i++)
+  {
+    volume[i] = DEFAULT_VOLUME;
+    mute[i] = 0;
+  }
 }
 
 void usb_microphone_set_tx_pre_load_handler(usb_microphone_tx_pre_load_cb_t handler)
@@ -277,9 +284,9 @@ bool tud_audio_get_req_entity_cb(uint8_t rhport, tusb_control_request_t const * 
             ret;
 
             ret.wNumSubRanges = 1;
-            ret.subrange[0].bMin = -90;           // -90 dB
-            ret.subrange[0].bMax = 90;    // +90 dB
-            ret.subrange[0].bRes = 1;     // 1 dB steps
+            ret.subrange[0].bMin = MIN_VOLUME;           // -90 dB
+            ret.subrange[0].bMax = MAX_VOLUME;           // +90 dB
+            ret.subrange[0].bRes = VOLUME_RESOLUTION;    // 1 dB steps
 
             return tud_audio_buffer_and_schedule_control_xfer(rhport, p_request, (void*) &ret, sizeof(ret));
 

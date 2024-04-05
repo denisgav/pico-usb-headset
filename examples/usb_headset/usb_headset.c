@@ -1,4 +1,5 @@
 #include "usb_headset.h"
+#include "pico/volume_ctrl.h"
 
 // List of supported sample rates
 #if defined(__RX__)
@@ -216,9 +217,9 @@ static bool tud_audio_feature_unit_get_request(uint8_t rhport, audio_control_req
       audio_control_range_2_n_t(1) range_vol = {
         .wNumSubRanges = tu_htole16(1),
         .subrange[0] = { 
-          .bMin = tu_htole16(-90), 
-          .bMax = tu_htole16(90), 
-          .bRes = tu_htole16(1) }
+          .bMin = tu_htole16(MIN_VOLUME), 
+          .bMax = tu_htole16(MAX_VOLUME), 
+          .bRes = tu_htole16(VOLUME_RESOLUTION) }
       };
       TU_LOG1("Get channel %u volume range (%d, %d, %u) dB\r\n", request->bChannelNumber,
               range_vol.subrange[0].bMin / 256, range_vol.subrange[0].bMax / 256, range_vol.subrange[0].bRes / 256);

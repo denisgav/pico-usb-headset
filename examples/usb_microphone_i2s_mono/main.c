@@ -4,7 +4,7 @@
 
 #include "usb_microphone.h"
 
-#include "pico/volume_ctrl.hpp"
+#include "pico/volume_ctrl.h"
 #include "main.h"
 //#include "pico/iir.h"
 

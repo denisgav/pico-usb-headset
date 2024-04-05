@@ -15,6 +15,22 @@ project(pico_microphone)
 pico_sdk_init()
 
 ###################################################
+# Volume control library
+###################################################
+add_library(pico_volume_ctrl INTERFACE)
+
+target_sources(pico_volume_ctrl INTERFACE
+    ${CMAKE_CURRENT_LIST_DIR}/src/volume_ctrl.c
+)
+
+target_include_directories(pico_volume_ctrl INTERFACE
+    ${CMAKE_CURRENT_LIST_DIR}/src/include
+)
+
+target_link_libraries(pico_volume_ctrl INTERFACE pico_stdlib)
+###################################################
+
+###################################################
 # PDM microphone library
 ###################################################
 

@@ -1,9 +1,14 @@
 #pragma once 
 
+#include <stdio.h>
+#include <string.h>
+
+#include "pico/stdlib.h"
+
 #include "stdbool.h"
 
 // todo this seemed like aood guess, but is not correct
-uint16_t db_to_vol[91] = {
+static const uint16_t db_to_vol[91] = {
         0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0002, 0x0002,
         0x0002, 0x0002, 0x0003, 0x0003, 0x0004, 0x0004, 0x0005, 0x0005,
         0x0006, 0x0007, 0x0008, 0x0009, 0x000a, 0x000b, 0x000d, 0x000e,
@@ -28,15 +33,4 @@ uint16_t db_to_vol[91] = {
 #define MAX_VOLUME           ENCODE_DB(count_of(db_to_vol)-CENTER_VOLUME_INDEX)
 #define VOLUME_RESOLUTION    ENCODE_DB(1)
 
-uint16_t vol_to_db_convert(bool channel_mute, uint16_t channel_volume){
-  if(channel_mute)
-    	return 0;
-
-    // todo interpolate
-  channel_volume += CENTER_VOLUME_INDEX * 256;
-  if (channel_volume < 0) channel_volume = 0;
-  if (channel_volume >= count_of(db_to_vol) * 256) channel_volume = count_of(db_to_vol) * 256 - 1;
-  uint16_t vol_mul = db_to_vol[((uint16_t)channel_volume) >> 8u];
-
-  return vol_mul;
-}
+uint16_t vol_to_db_convert(bool channel_mute, uint16_t channel_volume);

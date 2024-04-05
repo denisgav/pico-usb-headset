@@ -15,7 +15,7 @@
 #include "pico/pdm_microphone.h"
 
 #include "usb_microphone.h"
-#include "pico/volume_ctrl.hpp"
+#include "pico/volume_ctrl.h"
 
 typedef uint16_t usb_audio_sample;
 
