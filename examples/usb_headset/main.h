@@ -21,15 +21,15 @@
 #endif //MIC_BPS
 
 #ifndef MIC_RATE_DEF
-    #define MIC_RATE_DEF (48000)//(44100)
+    #define MIC_RATE_DEF (16000)//(44100)
 #endif //MIC_RATE_DEF
 
 #ifndef SPK_SD
-    #define SPK_SD 6 
+    #define SPK_SD 3 
 #endif //SPK_SD
 
 #ifndef SPK_SCK
-    #define SPK_SCK 7
+    #define SPK_SCK 4
 #endif //SPK_SCK
 
 #ifndef SPK_WS

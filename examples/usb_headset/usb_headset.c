@@ -3,9 +3,9 @@
 
 // List of supported sample rates
 #if defined(__RX__)
-  const uint32_t sample_rates[] = {16000, 32000, /*44100,*/ 48000};
+  const uint32_t sample_rates[] = {16000, 32000, 44100, 48000};
 #else
-  const uint32_t sample_rates[] = {16000, 32000, /*44100,*/ 48000};
+  const uint32_t sample_rates[] = {16000, 32000, 44100, 48000};
 #endif
 
 uint32_t current_sample_rate  = 48000;

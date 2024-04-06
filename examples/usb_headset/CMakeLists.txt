@@ -5,6 +5,7 @@ add_executable(usb_headset
     main.c
     usb_descriptors.c
     usb_headset.c
+    sample_rate_convertion.c
 )
 
 target_include_directories(usb_headset PRIVATE ${CMAKE_CURRENT_LIST_DIR})

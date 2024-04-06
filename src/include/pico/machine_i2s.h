@@ -41,8 +41,14 @@
 
 #define STATIC static
 #define mp_hal_pin_obj_t uint
-#define m_new(type, num) ((type *)(malloc(sizeof(type) * (num))))
-#define m_new_obj(type) (m_new(type, 1))
+
+#ifndef m_new
+    #define m_new(type, num) ((type *)(malloc(sizeof(type) * (num))))
+#endif //m_new
+
+#ifndef m_new_obj
+    #define m_new_obj(type) (m_new(type, 1))
+#endif //m_new_obj
 
 
 typedef enum {
