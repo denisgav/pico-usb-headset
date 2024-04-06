@@ -82,13 +82,15 @@ int16_t usb_to_i2s_16b_sample_convert(int16_t sample, int32_t volume_db);
 
 void refresh_i2s_connections()
 {
+  usb_mic_data_size = 0;
+  
   current_settings.i2s_sample_rate  = ((current_settings.usb_sample_rate % 8000) != 0) ? SPK_RATE_DEF : current_settings.usb_sample_rate;
   current_settings.samples_in_i2s_frame = current_settings.i2s_sample_rate/1000;
 
   speaker_i2s0 = create_machine_i2s(0, SPK_SCK, SPK_WS, SPK_SD, TX, 
     ((current_settings.resolution == 16) ? 16 : 32), STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, current_settings.i2s_sample_rate);
   microphone_i2s1 = create_machine_i2s(1, MIC_SCK, MIC_WS, MIC_SD, RX, 
-    MIC_BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, MIC_RATE_DEF);
+    MIC_BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, current_settings.i2s_sample_rate);
 
   if(usb_to_i2s_src){
     free(usb_to_i2s_src);
@@ -102,8 +104,8 @@ void refresh_i2s_connections()
 
   if(current_settings.usb_sample_rate != current_settings.i2s_sample_rate){
     usb_to_i2s_src = create_src(current_settings.usb_sample_rate, current_settings.i2s_sample_rate);
+    i2s_to_usb_src = create_src(current_settings.i2s_sample_rate, current_settings.usb_sample_rate);
   }
-  i2s_to_usb_src = create_src(MIC_RATE_DEF, current_settings.usb_sample_rate);
   
   // update_pio_frequency(speaker_i2s0, current_settings.usb_sample_rate);
   // update_pio_frequency(microphone_i2s1, current_settings.usb_sample_rate);
@@ -274,7 +276,7 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
   usb_mic_data_size = 0;
   if(microphone_i2s1) {
     // Read data from microphone
-    int num_bytes_read = machine_i2s_read_stream(microphone_i2s1, (void*)&mic_i2s_buffer[0], (4*2*MIC_RATE_DEF/1000)/*sizeof(buffer)*/); // 2 channels. Each value is 4 bytes. size of the data is 1 ms
+    int num_bytes_read = machine_i2s_read_stream(microphone_i2s1, (void*)&mic_i2s_buffer[0], (4*2*current_settings.i2s_sample_rate/1000)/*sizeof(buffer)*/); // 2 channels. Each value is 4 bytes. size of the data is 1 ms
 
     int num_of_usb_samples = 0;
 
@@ -289,7 +291,7 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
           if (current_settings.resolution == 16)
           {
             //mic_buf[i] = ((mic_i2s_buffer[i].left >> 8) + (mic_i2s_buffer[i].right >> 8)) / 2;
-            mic_buf_16b[num_of_usb_samples] = (sample_tmp >> 8);
+            mic_buf_16b[num_of_usb_samples] = (sample_tmp >> 9);
           }
           else if (current_settings.resolution == 24)
           {

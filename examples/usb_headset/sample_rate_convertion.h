@@ -6,10 +6,6 @@
 
 #include "pico/stdlib.h"
 
-#ifndef SRC_MAX_BUF_LEN
-	#define SRC_MAX_BUF_LEN 128
-#endif //SRC_MAX_BUF_LEN
-
 #ifndef m_new
     #define m_new(type, num) ((type *)(malloc(sizeof(type) * (num))))
 #endif //m_new
