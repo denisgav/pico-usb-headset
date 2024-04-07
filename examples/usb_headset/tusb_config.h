@@ -116,7 +116,7 @@ extern "C" {
 #if defined(__RX__)
 #define CFG_TUD_AUDIO_FUNC_1_MAX_SAMPLE_RATE                         48000     // 16bit/48kHz is the best quality for Renesas RX
 #else
-#define CFG_TUD_AUDIO_FUNC_1_MAX_SAMPLE_RATE                         48000 //96000     // 24bit/96kHz is the best quality for full-speed, high-speed is needed beyond this
+#define CFG_TUD_AUDIO_FUNC_1_MAX_SAMPLE_RATE                         48000     //96000 // 24bit/96kHz is the best quality for full-speed, high-speed is needed beyond this
 #endif
 #define CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX                           1
 #define CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX                           2

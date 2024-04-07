@@ -3,9 +3,9 @@
 
 // List of supported sample rates
 #if defined(__RX__)
-  const uint32_t sample_rates[] = {16000, 32000, 44100, 48000};
+  const uint32_t sample_rates[] = {16000/*, 22050, 24000*/, 32000, 44100, 48000};
 #else
-  const uint32_t sample_rates[] = {16000, 32000, 44100, 48000};
+  const uint32_t sample_rates[] = {16000/*, 22050, 24000*/, 32000, 44100, 48000};
 #endif
 
 uint32_t current_sample_rate  = 48000;
@@ -34,6 +34,11 @@ void usb_headset_init()
 
   if (board_init_after_tusb) {
     board_init_after_tusb();
+  }
+
+  for(int ch_idx = 0; ch_idx < CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1; ch_idx++){
+    mute[ch_idx] = 0;
+    volume[ch_idx] = MAX_VOLUME;
   }
 
   TU_LOG1("Headset running\r\n");

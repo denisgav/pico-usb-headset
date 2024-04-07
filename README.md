@@ -19,12 +19,15 @@ Capture audio from a microphone on your [Raspberry Pi Pico](https://www.raspberr
 #### PDM Microphone
 
 | Raspberry Pi Pico / RP2040 | PDM Microphone |
-| -------------------------- | ----------------- |
+| --- | --- |
 | 3.3V | VCC |
 | GND | GND |
 | GND | SEL |
-| GPIO 2 | DAT |
-| GPIO 3 | CLK |
+| GPIO 2 | PDM1 DAT |
+| GPIO 3 | PDM1 CLK |
+| GPIO 4 | PDM2 DAT |
+| GPIO 5 | PDM2 CLK |
+
 
 GPIO pins are configurable in examples or API.
 

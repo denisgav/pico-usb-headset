@@ -6,7 +6,6 @@
 
 #include "pico/volume_ctrl.h"
 #include "main.h"
-//#include "pico/iir.h"
 
 //-------------------------
 // Onboard LED
@@ -34,24 +33,12 @@ machine_i2s_obj_t* i2s0 = NULL;
 
 usb_audio_sample i2s_to_usb_sample_convert(uint32_t sample, uint32_t volume_db);
 
-// IIR lowpass1;
-// IIR lowpass2;
-// IIR highpass1;
-// IIR highpass2;
-// IIR shaping1;
-
 int main(void)
 {
   stdio_init_all();
 
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
-
-  // lowpass1 = IIR_create(lowpass,   880, BIQUAD_Q_ORDER_4_1, 0.0, (AUDIO_RATE_kHz*1000));
-  // lowpass2 = IIR_create(lowpass,   880, BIQUAD_Q_ORDER_4_2, 0.0, (AUDIO_RATE_kHz*1000));
-  // highpass1 = IIR_create(highpass, 880, BIQUAD_Q_ORDER_4_1, 0.0, (AUDIO_RATE_kHz*1000));
-  // highpass2 = IIR_create(highpass, 880, BIQUAD_Q_ORDER_4_2, 0.0, (AUDIO_RATE_kHz*1000));
-  // shaping1 = IIR_create(peak, 80, BIQUAD_Q_ORDER_2, 6.0, (AUDIO_RATE_kHz*1000));
 
   i2s0 = create_machine_i2s(0, SCK, WS, SD, RX, BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, RATE);
 
@@ -111,16 +98,4 @@ usb_audio_sample i2s_to_usb_sample_convert(uint32_t sample, uint32_t volume_db)
   sample_tmp = volume_db * sample_tmp;
   sample_tmp = sample_tmp >> 8;
   return sample_tmp;
-
-
-  // int32_t sample_tmp = sample >> 8;
-
-  // IIR_filter(&lowpass1, &sample_tmp); // +0dB
-  // IIR_filter(&lowpass2, &sample_tmp); // +0dB
-  //IIR_filter(&shaping1, &sample_tmp); // +6dB
-
-  // IIR_filter(&highpass1, &sample_tmp); // +0dB
-  // IIR_filter(&highpass2, &sample_tmp); // +0dB
-
-  //return (volume_db>>8) * (sample_tmp);
 }
