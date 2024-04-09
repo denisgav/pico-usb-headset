@@ -15,11 +15,11 @@
 #endif //m_new_obj
 
 typedef struct _src_obj_t {
-	int32_t prod_stride;
-	int32_t cons_stride;
+	uint32_t prod_stride;
+	uint32_t cons_stride;
 
-	int32_t prod_ptr;
-	int32_t cons_ptr;
+	uint32_t prod_ptr;
+	uint32_t cons_ptr;
 } src_obj_t;
 
 int32_t get_src_strride(int32_t sample_rate);

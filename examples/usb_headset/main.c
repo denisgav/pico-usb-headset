@@ -88,10 +88,7 @@ void refresh_i2s_connections()
     current_settings.i2s_sample_rate = current_settings.usb_sample_rate;
   }
   else{
-    if(current_settings.usb_sample_rate == 22050)
-      current_settings.i2s_sample_rate = 24000;
-    else
-      current_settings.i2s_sample_rate = 48000;
+     current_settings.i2s_sample_rate = 48000;
   }
   current_settings.samples_in_i2s_frame = current_settings.i2s_sample_rate/1000;
 
@@ -200,65 +197,65 @@ void usb_headset_tud_audio_rx_done_pre_read_handler(uint8_t rhport, uint16_t n_b
   uint32_t volume_db_master = current_settings.volume_db[0];
   uint32_t volume_db_left = current_settings.volume_db[1];
   uint32_t volume_db_right = current_settings.volume_db[2];
-  // speaker_i2s0
 
   if(speaker_i2s0){
     // Speaker data size received in the last frame
-    int usb_spk_data_size = tud_audio_read(spk_buf, n_bytes_received);
-    int usb_sample_count = 0;
+    uint16_t usb_spk_data_size = tud_audio_read(spk_buf, n_bytes_received);
+    uint16_t usb_sample_count = 0;
 
     uint16_t spk_i2s_data_samples = current_settings.samples_in_i2s_frame;
     uint16_t spk_i2s_data_size = spk_i2s_data_samples * ((current_settings.resolution == 16) ? 2 : 4);
 
     
-    int num_of_i2s_samples = 0;
+    uint16_t num_of_i2s_samples = 0;
     if (current_settings.resolution == 16)
     {
+      int16_t *in = (int16_t *) spk_buf;
       usb_sample_count = usb_spk_data_size/4; // 4 bytes per sample 2b left, 2b right
 
-      int16_t *in = (int16_t *) spk_buf;
-
       for (int i = 0; i < usb_sample_count; i++) {
-        int16_t left = in[i*2 + 0];
-        int16_t right = in[i*2 + 1];
-
-        left = usb_to_i2s_16b_sample_convert(left, volume_db_left);
-        left = usb_to_i2s_16b_sample_convert(left, volume_db_master);
-        right = usb_to_i2s_16b_sample_convert(right, volume_db_right);
-        right = usb_to_i2s_16b_sample_convert(right, volume_db_master);
-
         int num_of_replications = (usb_to_i2s_src) ? (get_next_src_replications(usb_to_i2s_src)) : 1;
-        for(int repl_idx=0; repl_idx<num_of_replications; repl_idx++){
-          spk_16b_i2s_buffer[num_of_i2s_samples].left  = left;
-          spk_16b_i2s_buffer[num_of_i2s_samples].right = right;
-          num_of_i2s_samples++;
+        if(num_of_replications >= 1)
+        {
+          int16_t left = in[i*2 + 0];
+          int16_t right = in[i*2 + 1];
+
+          left = usb_to_i2s_16b_sample_convert(left, volume_db_left);
+          left = usb_to_i2s_16b_sample_convert(left, volume_db_master);
+          right = usb_to_i2s_16b_sample_convert(right, volume_db_right);
+          right = usb_to_i2s_16b_sample_convert(right, volume_db_master);
+          for(int repl_idx=0; repl_idx<num_of_replications; repl_idx++){
+            spk_16b_i2s_buffer[num_of_i2s_samples].left  = left;
+            spk_16b_i2s_buffer[num_of_i2s_samples].right = right;
+            num_of_i2s_samples++;
+          }
         }
       }
       machine_i2s_write_stream(speaker_i2s0, (void*)&spk_16b_i2s_buffer[0], num_of_i2s_samples*4);
     }
     else if (current_settings.resolution == 24)
     {
+      int32_t *in = (int32_t *) spk_buf;
       usb_sample_count = usb_spk_data_size/8; // 8 bytes per sample 4b left, 4b right
 
-      int32_t *in = (int32_t *) spk_buf;
-
       for (int i = 0; i < usb_sample_count; i++) {
-        int32_t left = in[i*2 + 0];
-        int32_t right = in[i*2 + 1];
-
-        left = usb_to_i2s_32b_sample_convert(left, volume_db_left);
-        left = usb_to_i2s_32b_sample_convert(left, volume_db_master);
-        right = usb_to_i2s_32b_sample_convert(right, volume_db_right);
-        right = usb_to_i2s_32b_sample_convert(right, volume_db_master);
-
         int num_of_replications = (usb_to_i2s_src) ? (get_next_src_replications(usb_to_i2s_src)) : 1;
-        for(int repl_idx=0; repl_idx<num_of_replications; repl_idx++){
-          spk_32b_i2s_buffer[num_of_i2s_samples].left  = left;
-          spk_32b_i2s_buffer[num_of_i2s_samples].right = right;
-          num_of_i2s_samples++;
+        if(num_of_replications >= 1)
+        {
+          int32_t left = in[i*2 + 0];
+          int32_t right = in[i*2 + 1];
+
+          left = usb_to_i2s_32b_sample_convert(left, volume_db_left);
+          left = usb_to_i2s_32b_sample_convert(left, volume_db_master);
+          right = usb_to_i2s_32b_sample_convert(right, volume_db_right);
+          right = usb_to_i2s_32b_sample_convert(right, volume_db_master);
+          for(int repl_idx=0; repl_idx<num_of_replications; repl_idx++){
+            spk_32b_i2s_buffer[num_of_i2s_samples].left  = left;
+            spk_32b_i2s_buffer[num_of_i2s_samples].right = right;
+            num_of_i2s_samples++;
+          }
         }
       }
-
       machine_i2s_write_stream(speaker_i2s0, (void*)&spk_32b_i2s_buffer[0], num_of_i2s_samples*8);
     }
   }
@@ -295,23 +292,25 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
     if(num_bytes_read >= I2S_RX_FRAME_SIZE_IN_BYTES) {
       int num_of_frames_read = num_bytes_read/I2S_RX_FRAME_SIZE_IN_BYTES;
       for(uint32_t i = 0; i < num_of_frames_read; i++){
-        int32_t sample_tmp = mic_i2s_buffer[i].left;
-        sample_tmp = (sample_tmp>= 0x800000) ? -(0xFFFFFFFF - sample_tmp + 1) : sample_tmp;
-
         int num_of_replications = (i2s_to_usb_src) ? (get_next_src_replications(i2s_to_usb_src)) : 1;
-        for(int repl_idx=0; repl_idx<num_of_replications; repl_idx++){
-          if (current_settings.resolution == 16)
-          {
-            //mic_buf[i] = ((mic_i2s_buffer[i].left >> 8) + (mic_i2s_buffer[i].right >> 8)) / 2;
-            mic_buf_16b[num_of_usb_samples] = (sample_tmp >> 8);
-          }
-          else if (current_settings.resolution == 24)
-          {
-            //mic_buf[i] = (mic_i2s_buffer[i].left + mic_i2s_buffer[i].right) / 2;
+        if(num_of_replications >= 1)
+        {
+          int32_t sample_tmp = mic_i2s_buffer[i].left;
+          sample_tmp = (sample_tmp>= 0x800000) ? -(0xFFFFFFFF - sample_tmp + 1) : sample_tmp;
+          for(int repl_idx=0; repl_idx<num_of_replications; repl_idx++){
+            if (current_settings.resolution == 16)
+            {
+              //mic_buf[i] = ((mic_i2s_buffer[i].left >> 8) + (mic_i2s_buffer[i].right >> 8)) / 2;
+              mic_buf_16b[num_of_usb_samples] = (sample_tmp >> 8);
+            }
+            else if (current_settings.resolution == 24)
+            {
+              //mic_buf[i] = (mic_i2s_buffer[i].left + mic_i2s_buffer[i].right) / 2;
 
-            mic_buf_32b[num_of_usb_samples] = (sample_tmp << 8);
+              mic_buf_32b[num_of_usb_samples] = (sample_tmp << 8);
+            }
+            num_of_usb_samples++;
           }
-          num_of_usb_samples++;
         }
       }
     }

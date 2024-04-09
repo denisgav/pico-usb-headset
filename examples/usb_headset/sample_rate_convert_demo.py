@@ -38,18 +38,23 @@ class sample_rate_convertion:
 
 
 def main():
-	src = sample_rate_convertion(16000, 44100)
+	src = sample_rate_convertion(44100, 48000)
+	src.prod_stride = int(44*45*48/44)
+	src.cons_stride = int(44*45*48/48)
 
 	replications_sum = 0
-	for i in range(16):
+	for i in range(44):
 		replications = src.get_next_src_replications()
 		print(f"#{i}, replications = {replications}. {src.m_print()}")
 		replications_sum += replications
 
 	print(f"replications_sum = {replications_sum}")
 
+	src.prod_stride = int(44*45*48/45)
+	src.cons_stride = int(44*45*48/48)
+
 	replications_sum = 0
-	for i in range(16):
+	for i in range(45):
 		replications = src.get_next_src_replications()
 		print(f"#{i}, replications = {replications}. {src.m_print()}")
 		replications_sum += replications

@@ -61,6 +61,9 @@ make
 
 ## Acknowledgements
 
-The [OpenPDM2PCM](https://os.mbed.com/teams/ST/code/X_NUCLEO_CCA02M1//file/53f8b511f2a1/Middlewares/OpenPDM2PCM/) library is used to filter raw PDM data into PCM. The [TinyUSB](https://github.com/hathach/tinyusb) library is used in the `usb_microphone` example.
-
+To create this project, following references were used:
+ * The [TinyUSB](https://github.com/hathach/tinyusb) library is used in the `usb_microphone_array` and `usb_microphone_array_led` examples.
+ * Machine I2S  https://github.com/sfera-labs/arduino-pico-i2s-audio
+ * SK9822 LED https://github.com/raspberrypi/pico-examples/tree/master/pio/ws2812
+ * Microphone library for pico https://github.com/ArmDeveloperEcosystem/microphone-library-for-pico.git 
 ---
