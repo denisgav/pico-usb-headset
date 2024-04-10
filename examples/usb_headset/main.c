@@ -232,6 +232,26 @@ void usb_headset_tud_audio_tx_done_pre_load_handler(uint8_t rhport, uint8_t itf,
       tud_audio_write((uint8_t *)mic_buf_32b, usb_mic_data_size*4);
     }
   }
+  else{
+    for(uint32_t i = 0; i < current_settings.samples_in_i2s_frame_max; i++){
+      if (current_settings.resolution == 16)
+      {
+        mic_buf_16b[i] = 0;
+      }
+      else if (current_settings.resolution == 24)
+      {
+        mic_buf_32b[i] = 0;
+      }
+    }
+    if (current_settings.resolution == 16)
+    {
+      tud_audio_write((uint8_t *)mic_buf_16b, current_settings.samples_in_i2s_frame_max*2);
+    }
+    else
+    {
+      tud_audio_write((uint8_t *)mic_buf_32b, current_settings.samples_in_i2s_frame_max*4);
+    }
+  }
   usb_mic_data_size = 0;
 }
 
