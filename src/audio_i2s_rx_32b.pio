@@ -23,6 +23,7 @@
                     ;            /--- LRCLK
                     ;            |/-- BCLK
                     ;            ||
+.wrap_target
     set x, 30             side 0b00
 left_channel:                   
     in pins, 1            side 0b01
@@ -34,7 +35,7 @@ right_channel:
     in pins, 1            side 0b11
     jmp x-- right_channel side 0b10
     in pins, 1            side 0b01
-
+.wrap
 % c-sdk {
 
 %}

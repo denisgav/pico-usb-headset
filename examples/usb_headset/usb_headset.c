@@ -3,9 +3,9 @@
 
 // List of supported sample rates
 #if defined(__RX__)
-  const uint32_t sample_rates[] = {16000, 32000, 44100, 48000};
+  const uint32_t sample_rates[] = {16000, 32000, /*44100,*/ 48000};
 #else
-  const uint32_t sample_rates[] = {16000, 32000, 44100, 48000};
+  const uint32_t sample_rates[] = {16000, 32000, /*44100,*/ 48000};
 #endif
 
 uint32_t current_sample_rate  = 48000;
@@ -385,18 +385,6 @@ bool tud_audio_rx_done_pre_read_cb(uint8_t rhport, uint16_t n_bytes_received, ui
   return true;
 }
 
-// bool tud_audio_tx_done_pre_load_cb(uint8_t rhport, uint8_t itf, uint8_t ep_in, uint8_t cur_alt_setting)
-// {
-//   (void)rhport;
-//   (void)itf;
-//   (void)ep_in;
-//   (void)cur_alt_setting;
-
-//   // This callback could be used to fill microphone data separately
-//   tud_audio_write((uint8_t *)mic_buf, (uint16_t) (CFG_TUD_AUDIO_FUNC_1_EP_IN_SW_BUF_SZ));
-//   return true;
-// }
-
 bool tud_audio_tx_done_pre_load_cb(uint8_t rhport, uint8_t itf, uint8_t ep_in, uint8_t cur_alt_setting)
 {
   (void)rhport;
@@ -433,4 +421,33 @@ bool tud_audio_tx_done_post_load_cb(uint8_t rhport, uint16_t n_bytes_copied, uin
 
 void audio_task(void)
 {
+}
+
+void volume_inc_btn_press(void){
+  for (int i = 0; i < CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1; i++)
+  {
+    volume[i] = (volume[i] <= ((int16_t)MAX_VOLUME - VOLUME_RESOLUTION)) ? (volume[i] + VOLUME_RESOLUTION) : volume[i];
+  }
+
+  if(usb_headset_volume_set_handler)
+  {
+    for (int i = 0; i < CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1; i++)
+    {
+      usb_headset_volume_set_handler(i, volume[i]);
+    }
+  }
+}
+void volume_dec_btn_press(void){
+  for (int i = 0; i < CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1; i++)
+  {
+    volume[i] = (volume[i] >= ((int16_t)MIN_VOLUME + VOLUME_RESOLUTION)) ? (volume[i] - VOLUME_RESOLUTION) : volume[i];
+  }
+
+  if(usb_headset_volume_set_handler)
+  {
+    for (int i = 0; i < CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1; i++)
+    {
+      usb_headset_volume_set_handler(i, volume[i]);
+    }
+  }
 }

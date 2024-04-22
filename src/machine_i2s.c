@@ -359,12 +359,12 @@ STATIC void irq_deinit(machine_i2s_obj_t *self) {
 STATIC int pio_configure(machine_i2s_obj_t *self) {
     if (self->mode == TX) {
         if (self->bits == 16) {
-            self->pio_program = &pio_write_16; //&audio_i2s_tx_16b_program;
+            self->pio_program = &audio_i2s_tx_16b_program; //&pio_write_16;
         } else {
-            self->pio_program = &pio_write_32; //&audio_i2s_tx_32b_program;
+            self->pio_program = &audio_i2s_tx_32b_program; //&pio_write_32;
         }
     } else { // RX
-        self->pio_program = &pio_read_32; //&audio_i2s_rx_32b_program;
+        self->pio_program = &audio_i2s_rx_32b_program; //&pio_read_32;
     }
 
     // find a PIO with a free state machine and adequate program space

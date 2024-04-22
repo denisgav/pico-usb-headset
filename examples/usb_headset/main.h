@@ -44,14 +44,34 @@
     #define SPK_RATE_DEF (48000)//(44100)
 #endif //SPK_RATE_DEF
 
+#ifndef LED_STATUS_MUTE
+    #define LED_STATUS_MUTE 13
+#endif //LED_STATUS_MUTE
+
+#ifndef LED_STATUS_LIVE
+    #define LED_STATUS_LIVE 14
+#endif //LED_STATUS_LIVE
+
+#ifndef BTN_CTRL_MUTE
+    #define BTN_CTRL_MUTE 15
+#endif //BTN_CTRL_MUTE
+
+#ifndef BTN_CTRL_VOL_INC
+    #define BTN_CTRL_VOL_INC 16
+#endif //BTN_CTRL_VOL_INC
+
+#ifndef BTN_CTRL_VOL_DEC
+    #define BTN_CTRL_VOL_DEC 17
+#endif //BTN_CTRL_VOL_DEC
+
 typedef struct  {
-    int32_t left;
-    int32_t right;
+    uint32_t left;
+    uint32_t right;
 } i2s_32b_audio_sample;
 
 typedef struct  {
-    int16_t left;
-    int16_t right;
+    uint16_t left;
+    uint16_t right;
 } i2s_16b_audio_sample;
 
 #define SAMPLE_BUFFER_SIZE  (100000/1000) // MAX sample rate divided by 1000. Size of 1 ms sample

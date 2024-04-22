@@ -69,4 +69,7 @@ void usb_headset_set_tud_audio_rx_done_pre_read_set_handler(usb_headset_tud_audi
 void usb_headset_set_tud_audio_tx_done_pre_load_set_handler(usb_headset_tud_audio_tx_done_pre_load_cb_t handler);
 void usb_headset_set_tud_audio_tx_done_post_load_set_handler(usb_headset_tud_audio_tx_done_post_load_cb_t handler);
 
+void volume_inc_btn_press(void);
+void volume_dec_btn_press(void);
+
 #endif //USB_HEADSET__H

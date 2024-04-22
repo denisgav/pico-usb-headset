@@ -23,6 +23,7 @@
                     ;            /--- LRCLK
                     ;            |/-- BCLK
                     ;            ||
+.wrap_target
     set x, 14             side 0b01
 left_channel:                   
     out pins, 1           side 0b00
@@ -35,7 +36,7 @@ right_channel:
     jmp x-- right_channel side 0b11
 public entry_point:
     out pins, 1           side 0b00
-
+.wrap
 % c-sdk {
 
 static inline void audio_i2s_tx_16b_program_init(PIO pio, uint sm, uint offset, uint data_pin, uint clock_pin_base) {
