@@ -58,6 +58,8 @@ typedef struct _current_settings_t {
   bool mic_muted_by_user;
   bool mic_live_status;
 
+  uint32_t cur_time_ms;
+
 } current_settings_t;
 
 current_settings_t current_settings;
@@ -88,6 +90,7 @@ void refresh_i2s_connections()
   current_settings.samples_in_i2s_frame_min = (current_settings.sample_rate)    /1000;
   current_settings.samples_in_i2s_frame_max = (current_settings.sample_rate+999)/1000;
   current_settings.mic_muted_by_user = false;
+  current_settings.cur_time_ms = 0;
 
   speaker_i2s0 = create_machine_i2s(0, SPK_SCK, SPK_WS, SPK_SD, TX, 
     ((current_settings.resolution == 16) ? 16 : 32), STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, current_settings.sample_rate);
@@ -156,6 +159,8 @@ int main(void)
 
   while (1) {
     usb_headset_task();
+
+    current_settings.cur_time_ms = board_millis();
     audio_control_task();
     led_blinking_task();
   }
@@ -306,7 +311,7 @@ void audio_control_task(void)
   const uint32_t interval_ms = 50;
   static uint32_t start_ms = 0;
 
-  if ( board_millis() - start_ms < interval_ms) return; // not enough time
+  if ( current_settings.cur_time_ms - start_ms < interval_ms) return; // not enough time
   start_ms += interval_ms;
 
   static uint32_t btn_mute_status_prev = 0;
@@ -387,17 +392,16 @@ void led_blinking_task(void)
   static bool led_state = false;
 
   static uint32_t mic_live_status_update_ms = 0;
-  uint32_t cur_time_ms = board_millis();
 
   gpio_put(LED_STATUS_MUTE, current_settings.mic_muted_by_user);
   gpio_put(LED_STATUS_LIVE, current_settings.mic_live_status);
-  if (cur_time_ms - mic_live_status_update_ms > 1000){
-    mic_live_status_update_ms = cur_time_ms;
+  if (current_settings.cur_time_ms - mic_live_status_update_ms > 1000){
+    mic_live_status_update_ms = current_settings.cur_time_ms;
     current_settings.mic_live_status = false;
   }
 
   // Blink every interval ms
-  if (cur_time_ms - start_ms < current_settings.blink_interval_ms) return;
+  if (current_settings.cur_time_ms - start_ms < current_settings.blink_interval_ms) return;
   start_ms += current_settings.blink_interval_ms;
 
   board_led_write(led_state);
