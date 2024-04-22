@@ -393,17 +393,13 @@ void led_blinking_task(void)
 
   static uint32_t mic_live_status_update_ms = 0;
 
-  gpio_put(LED_STATUS_MUTE, current_settings.mic_muted_by_user);
-  gpio_put(LED_STATUS_LIVE, current_settings.mic_live_status);
-  if (current_settings.cur_time_ms - mic_live_status_update_ms > 1000){
-    mic_live_status_update_ms = current_settings.cur_time_ms;
-    current_settings.mic_live_status = false;
-  }
-
   // Blink every interval ms
   if (current_settings.cur_time_ms - start_ms < current_settings.blink_interval_ms) return;
   start_ms += current_settings.blink_interval_ms;
 
   board_led_write(led_state);
+  gpio_put(LED_STATUS_MUTE, current_settings.mic_muted_by_user);
+  gpio_put(LED_STATUS_LIVE, current_settings.mic_live_status);
+  current_settings.mic_live_status = false;
   led_state = 1 - led_state;
 }
