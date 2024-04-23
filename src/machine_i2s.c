@@ -671,7 +671,7 @@ STATIC int machine_i2s_init_helper(machine_i2s_obj_t *self,
     self->non_blocking_descriptor.copy_in_progress = false;
     self->io_mode = BLOCKING;
 
-    memset(self->dma_buffer, 0, SIZEOF_DMA_BUFFER_IN_BYTES);
+    //memset(self->dma_buffer, 0, SIZEOF_DMA_BUFFER_IN_BYTES);
 
     self->sizeof_half_dma_buffer_in_bytes = ((self->rate+999)/1000) * ((i2s_bits == 32) ? 8 : 4);
 

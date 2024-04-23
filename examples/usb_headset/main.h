@@ -5,11 +5,11 @@
 // I2s defines
 //-------------------------
 #ifndef MIC_SD
-    #define MIC_SD 0 
+    #define MIC_SD 2 
 #endif //MIC_SD
 
 #ifndef MIC_SCK
-    #define MIC_SCK 1
+    #define MIC_SCK 3
 #endif //MIC_SCK
 
 #ifndef MIC_WS
@@ -25,11 +25,11 @@
 #endif //MIC_RATE_DEF
 
 #ifndef SPK_SD
-    #define SPK_SD 3 
+    #define SPK_SD 5 
 #endif //SPK_SD
 
 #ifndef SPK_SCK
-    #define SPK_SCK 4
+    #define SPK_SCK 6
 #endif //SPK_SCK
 
 #ifndef SPK_WS
