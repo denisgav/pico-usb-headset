@@ -330,36 +330,12 @@ void audio_control_task(void)
   {
     // Adjust volume between 0dB (100%) and -30dB (10%)
     volume_dec_btn_press();
-
-    // 6.1 Interrupt Data Message
-    const audio_interrupt_data_t data = {
-      .bInfo = 0,                                       // Class-specific interrupt, originated from an interface
-      .bAttribute = AUDIO_CS_REQ_CUR,                   // Caused by current settings
-      .wValue_cn_or_mcn = 0,                            // CH0: master volume
-      .wValue_cs = AUDIO_FU_CTRL_VOLUME,                // Volume change
-      .wIndex_ep_or_int = 0,                            // From the interface itself
-      .wIndex_entity_id = UAC2_ENTITY_SPK_FEATURE_UNIT, // From feature unit
-    };
-
-    tud_audio_int_write(&data);
   }
 
   if (!btn_vol_dec_status_prev && btn_vol_dec_status)
   {
     // Adjust volume between 0dB (100%) and -30dB (10%)
     volume_inc_btn_press();
-
-    // 6.1 Interrupt Data Message
-    const audio_interrupt_data_t data = {
-      .bInfo = 0,                                       // Class-specific interrupt, originated from an interface
-      .bAttribute = AUDIO_CS_REQ_CUR,                   // Caused by current settings
-      .wValue_cn_or_mcn = 0,                            // CH0: master volume
-      .wValue_cs = AUDIO_FU_CTRL_VOLUME,                // Volume change
-      .wIndex_ep_or_int = 0,                            // From the interface itself
-      .wIndex_entity_id = UAC2_ENTITY_SPK_FEATURE_UNIT, // From feature unit
-    };
-
-    tud_audio_int_write(&data);
   }
 
   btn_mute_status_prev = btn_mute_status;
