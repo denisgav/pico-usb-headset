@@ -201,7 +201,7 @@ void usb_headset_tud_audio_rx_done_pre_read_handler(uint8_t rhport, uint16_t n_b
   uint32_t volume_db_left = current_settings.volume_db[1];
   uint32_t volume_db_right = current_settings.volume_db[2];
 
-  if(speaker_i2s0){
+  if(speaker_i2s0 && (current_settings.blink_interval_ms == BLINK_STREAMING)){
     // Speaker data size received in the last frame
     uint16_t usb_spk_data_size = tud_audio_read(spk_buf, n_bytes_received);
     uint16_t usb_sample_count = 0;

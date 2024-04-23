@@ -23,7 +23,7 @@
 // The DMA buffer size was empirically determined.  It is a tradeoff between:
 // 1. memory use (smaller buffer size desirable to reduce memory footprint)
 // 2. interrupt frequency (larger buffer size desirable to reduce interrupt frequency)
-#define SIZEOF_DMA_BUFFER_IN_BYTES (2*1024) // Max frequency is 96000. in worst case. Ims contains 96 samples. Each sample is 8 bytes
+#define SIZEOF_DMA_BUFFER_IN_BYTES (48*8*2) // Max frequency is 48000. in worst case. 1ms contains 48 samples. Each sample is 8 bytes. Need to hold 2 buffers of this size
 #define SIZEOF_HALF_DMA_BUFFER_IN_BYTES (SIZEOF_DMA_BUFFER_IN_BYTES / 2)
 #define I2S_NUM_DMA_CHANNELS (2)
 

@@ -74,7 +74,7 @@ typedef struct  {
     uint16_t right;
 } i2s_16b_audio_sample;
 
-#define SAMPLE_BUFFER_SIZE  (100000/1000) // MAX sample rate divided by 1000. Size of 1 ms sample
+#define SAMPLE_BUFFER_SIZE  (48000/1000) // MAX sample rate divided by 1000. Size of 1 ms sample
 
 //-------------------------
 

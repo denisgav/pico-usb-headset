@@ -721,14 +721,15 @@ STATIC machine_i2s_obj_t* machine_i2s_make_new(uint8_t i2s_id,
     }
 
     machine_i2s_obj_t *self;
-    if (machine_i2s_obj[i2s_id] == NULL) {
-        self = m_new_obj(machine_i2s_obj_t);
-        machine_i2s_obj[i2s_id] = self;
-        self->i2s_id = i2s_id;
-    } else {
+    // Deinit a machine if it already created
+    if (machine_i2s_obj[i2s_id] != NULL) { 
         self = machine_i2s_obj[i2s_id];
         machine_i2s_deinit(self);
     }
+
+    self = m_new_obj(machine_i2s_obj_t);
+    machine_i2s_obj[i2s_id] = self;
+    self->i2s_id = i2s_id;
 
     if (machine_i2s_init_helper(self, sck, ws, sd, i2s_mode, i2s_bits,
             i2s_format, ring_buffer_len, i2s_rate) != 0) {
@@ -739,12 +740,16 @@ STATIC machine_i2s_obj_t* machine_i2s_make_new(uint8_t i2s_id,
 
 STATIC void machine_i2s_deinit(machine_i2s_obj_t *self){
     // use self->pio as in indication that I2S object has already been de-initialized
-    if (self->pio != NULL) {
+    if (self != NULL) {
         pio_deinit(self);
         dma_deinit(self);
         irq_deinit(self);
-        free(self->ring_buffer_storage);
+
         self->pio = NULL;  // flag object as de-initialized
+        machine_i2s_obj[self->i2s_id] == NULL;
+
+        free(self->ring_buffer_storage);
+        free(self);
     }
 }
 
