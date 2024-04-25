@@ -250,6 +250,12 @@ void usb_headset_tud_audio_tx_done_pre_load_handler(uint8_t rhport, uint8_t itf,
 
 void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_bytes_copied, uint8_t itf, uint8_t ep_in, uint8_t cur_alt_setting)
 {
+  #ifndef MIC_INMP441
+  static int64_t sample_mean_value_sum = 0;
+  static int32_t sample_mean_value_cntr = 0;
+  static int32_t sample_mean_value = 0;
+  #endif //MIC_INMP441
+
   usb_mic_data_size = 0;
   if(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX != 0) {
     if(microphone_i2s1) {
@@ -264,6 +270,18 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
 
         if(num_bytes_read >= I2S_RX_FRAME_SIZE_IN_BYTES) {
           int num_of_frames_read = num_bytes_read/I2S_RX_FRAME_SIZE_IN_BYTES;
+
+          #ifndef MIC_INMP441
+          for(uint32_t i = 0; i < num_of_frames_read; i++){
+            uint32_t sample = mic_i2s_buffer[i].left;
+            int32_t sample_tmp = sample;
+            sample_tmp = sample_tmp >> 2;
+            sample_mean_value_sum = sample_mean_value_sum + sample_tmp;
+          }
+          sample_mean_value_cntr = sample_mean_value_cntr + num_of_frames_read;
+          sample_mean_value = sample_mean_value_sum / sample_mean_value_cntr;
+          #endif// MIC_INMP441
+
           for(uint32_t i = 0; i < num_of_frames_read; i++){
             uint32_t sample = mic_i2s_buffer[i].left;
             int32_t sample_tmp = sample;
@@ -273,6 +291,7 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
             #else // MIC_INMP441
             // Add adjustments for GY-SPH0645
             sample_tmp = sample_tmp >> 2;
+            sample_tmp = sample_tmp - sample_mean_value;
             #endif // MIC_INMP441
             if (current_settings.resolution == 16)
             {
