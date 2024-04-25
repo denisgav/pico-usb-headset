@@ -4,24 +4,40 @@
 //-------------------------
 // I2s defines
 //-------------------------
-#ifndef MIC_SD
-    #define MIC_SD 2 
-#endif //MIC_SD
+//#define MIC_INMP441
 
-#ifndef MIC_SCK
-    #define MIC_SCK 3
-#endif //MIC_SCK
+#ifdef MIC_INMP441
+    #ifndef MIC_SD
+        #define MIC_SD 2 
+    #endif //MIC_SD
 
-#ifndef MIC_WS
-    #define MIC_WS (MIC_SCK+1) // needs to be MIC_SCK +1
-#endif //MIC_WS
+    #ifndef MIC_SCK
+        #define MIC_SCK 3
+    #endif //MIC_SCK
+
+    #ifndef MIC_WS
+        #define MIC_WS (MIC_SCK+1) // needs to be MIC_SCK +1
+    #endif //MIC_WS
+#else //MIC_INMP441
+    #ifndef MIC_SD
+        #define MIC_SD 8 
+    #endif //MIC_SD
+
+    #ifndef MIC_SCK
+        #define MIC_SCK 9
+    #endif //MIC_SCK
+
+    #ifndef MIC_WS
+        #define MIC_WS (MIC_SCK+1) // needs to be MIC_SCK +1
+    #endif //MIC_WS
+#endif //MIC_INMP441
 
 #ifndef MIC_BPS
     #define MIC_BPS 32 // 24 is not valid in this implementation, but INMP441 outputs 24 bits samples
 #endif //MIC_BPS
 
 #ifndef MIC_RATE_DEF
-    #define MIC_RATE_DEF (16000)//(44100)
+    #define MIC_RATE_DEF (16000)
 #endif //MIC_RATE_DEF
 
 #ifndef SPK_SD
@@ -41,28 +57,8 @@
 #endif //SPK_BPS
 
 #ifndef SPK_RATE_DEF
-    #define SPK_RATE_DEF (48000)//(44100)
+    #define SPK_RATE_DEF (48000)
 #endif //SPK_RATE_DEF
-
-#ifndef LED_STATUS_MUTE
-    #define LED_STATUS_MUTE 13
-#endif //LED_STATUS_MUTE
-
-#ifndef LED_STATUS_LIVE
-    #define LED_STATUS_LIVE 14
-#endif //LED_STATUS_LIVE
-
-#ifndef BTN_CTRL_MUTE
-    #define BTN_CTRL_MUTE 15
-#endif //BTN_CTRL_MUTE
-
-#ifndef BTN_CTRL_VOL_INC
-    #define BTN_CTRL_VOL_INC 16
-#endif //BTN_CTRL_VOL_INC
-
-#ifndef BTN_CTRL_VOL_DEC
-    #define BTN_CTRL_VOL_DEC 17
-#endif //BTN_CTRL_VOL_DEC
 
 typedef struct  {
     uint32_t left;

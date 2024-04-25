@@ -77,8 +77,6 @@ int32_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 4];
 
 void led_blinking_task(void);
 
-void audio_control_task(void);
-
 int32_t usb_to_i2s_32b_sample_convert(int32_t sample, int32_t volume_db);
 
 int16_t usb_to_i2s_16b_sample_convert(int16_t sample, int32_t volume_db);
@@ -124,19 +122,6 @@ int main(void)
 
   usb_mic_data_size = 0;
 
-  // Configure LEDS and buttons
-
-  gpio_init(LED_STATUS_MUTE);
-  gpio_set_dir(LED_STATUS_MUTE, GPIO_OUT);
-  gpio_init(LED_STATUS_LIVE);
-  gpio_set_dir(LED_STATUS_LIVE, GPIO_OUT);
-  gpio_init(BTN_CTRL_MUTE);
-  gpio_set_dir(BTN_CTRL_MUTE, GPIO_IN);
-  gpio_init(BTN_CTRL_VOL_INC);
-  gpio_set_dir(BTN_CTRL_VOL_INC, GPIO_IN);
-  gpio_init(BTN_CTRL_VOL_DEC);
-  gpio_set_dir(BTN_CTRL_VOL_DEC, GPIO_IN);
-
   usb_headset_set_mute_set_handler(usb_headset_mute_handler);
   usb_headset_set_volume_set_handler(usb_headset_volume_handler);
   usb_headset_set_current_sample_rate_set_handler(usb_headset_current_sample_rate_handler);
@@ -161,7 +146,6 @@ int main(void)
     usb_headset_task();
 
     current_settings.cur_time_ms = board_millis();
-    audio_control_task();
     led_blinking_task();
   }
 }
@@ -281,8 +265,15 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
         if(num_bytes_read >= I2S_RX_FRAME_SIZE_IN_BYTES) {
           int num_of_frames_read = num_bytes_read/I2S_RX_FRAME_SIZE_IN_BYTES;
           for(uint32_t i = 0; i < num_of_frames_read; i++){
-            int32_t sample_tmp = mic_i2s_buffer[i].left;
-            sample_tmp = (sample_tmp>= 0x800000) ? -(0xFFFFFFFF - sample_tmp + 1) : sample_tmp;
+            uint32_t sample = mic_i2s_buffer[i].left;
+            int32_t sample_tmp = sample;
+            #ifdef MIC_INMP441
+            // Add adjustments for INMP441
+            sample_tmp = sample_tmp & 0xFFFFFF00;
+            #else // MIC_INMP441
+            // Add adjustments for GY-SPH0645
+            sample_tmp = sample_tmp >> 2;
+            #endif // MIC_INMP441
             if (current_settings.resolution == 16)
             {
               //mic_buf[i] = ((mic_i2s_buffer[i].left >> 8) + (mic_i2s_buffer[i].right >> 8)) / 2;
@@ -300,47 +291,6 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
       }
     }
   }
-}
-
-void audio_control_task(void)
-{
-  // Press on-board button to control volume
-  // Open host volume control, volume should switch between 10% and 100%
-
-  // Poll every 50ms
-  const uint32_t interval_ms = 50;
-  static uint32_t start_ms = 0;
-
-  if ( current_settings.cur_time_ms - start_ms < interval_ms) return; // not enough time
-  start_ms += interval_ms;
-
-  static uint32_t btn_mute_status_prev = 0;
-  static uint32_t btn_vol_inc_status_prev = 0;
-  static uint32_t btn_vol_dec_status_prev = 0;
-
-  uint32_t btn_mute_status = gpio_get(BTN_CTRL_MUTE);
-  uint32_t btn_vol_inc_status = gpio_get(BTN_CTRL_VOL_INC);
-  uint32_t btn_vol_dec_status = gpio_get(BTN_CTRL_VOL_DEC);
-
-  if (!btn_mute_status_prev && btn_mute_status){
-    current_settings.mic_muted_by_user = !current_settings.mic_muted_by_user;
-  }
-
-  if (!btn_vol_inc_status_prev && btn_vol_inc_status)
-  {
-    // Adjust volume between 0dB (100%) and -30dB (10%)
-    volume_dec_btn_press();
-  }
-
-  if (!btn_vol_dec_status_prev && btn_vol_dec_status)
-  {
-    // Adjust volume between 0dB (100%) and -30dB (10%)
-    volume_inc_btn_press();
-  }
-
-  btn_mute_status_prev = btn_mute_status;
-  btn_vol_inc_status_prev = btn_vol_inc_status;
-  btn_vol_dec_status_prev = btn_vol_dec_status;
 }
 
 int32_t usb_to_i2s_32b_sample_convert(int32_t sample, int32_t volume_db)
@@ -374,8 +324,5 @@ void led_blinking_task(void)
   start_ms += current_settings.blink_interval_ms;
 
   board_led_write(led_state);
-  gpio_put(LED_STATUS_MUTE, current_settings.mic_muted_by_user);
-  gpio_put(LED_STATUS_LIVE, current_settings.mic_live_status);
-  current_settings.mic_live_status = false;
   led_state = 1 - led_state;
 }

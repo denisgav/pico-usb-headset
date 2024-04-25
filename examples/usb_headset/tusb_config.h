@@ -105,18 +105,17 @@ extern "C" {
 // AUDIO CLASS DRIVER CONFIGURATION
 //--------------------------------------------------------------------
 
-// Allow volume controlled by on-baord button
-//#define CFG_TUD_AUDIO_ENABLE_INTERRUPT_EP                            1 // Temporary disable interrupt
-
 #define CFG_TUD_AUDIO_FUNC_1_DESC_LEN                                TUD_AUDIO_HEADSET_STEREO_DESC_LEN
 
 // How many formats are used, need to adjust USB descriptor if changed
 #define CFG_TUD_AUDIO_FUNC_1_N_FORMATS                               2
 
 // Audio format type I specifications
-/* 24bit/48kHz is the best quality for headset or 24bit/96kHz for 2ch speaker,
-   high-speed is needed beyond this */
-#define CFG_TUD_AUDIO_FUNC_1_MAX_SAMPLE_RATE                         48000
+#if defined(__RX__)
+#define CFG_TUD_AUDIO_FUNC_1_MAX_SAMPLE_RATE                         48000     // 16bit/48kHz is the best quality for Renesas RX
+#else
+#define CFG_TUD_AUDIO_FUNC_1_MAX_SAMPLE_RATE                         48000     // 24bit/96kHz is the best quality for full-speed, high-speed is needed beyond this
+#endif
 #define CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX                           1
 #define CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX                           2
 
@@ -159,10 +158,10 @@ extern "C" {
 #define CFG_TUD_AUDIO_FUNC_1_EP_OUT_SZ_MAX        TU_MAX(CFG_TUD_AUDIO_FUNC_1_FORMAT_1_EP_SZ_OUT, CFG_TUD_AUDIO_FUNC_1_FORMAT_2_EP_SZ_OUT) // Maximum EP IN size for all AS alternate settings used
 
 // Number of Standard AS Interface Descriptors (4.9.1) defined per audio function - this is required to be able to remember the current alternate settings of these interfaces - We restrict us here to have a constant number for all audio functions (which means this has to be the maximum number of AS interfaces an audio function has and a second audio function with less AS interfaces just wastes a few bytes)
-#define CFG_TUD_AUDIO_FUNC_1_N_AS_INT 	          2
+#define CFG_TUD_AUDIO_FUNC_1_N_AS_INT            2
 
 // Size of control request buffer
-#define CFG_TUD_AUDIO_FUNC_1_CTRL_BUF_SZ	64
+#define CFG_TUD_AUDIO_FUNC_1_CTRL_BUF_SZ  64
 
 #ifdef __cplusplus
 }

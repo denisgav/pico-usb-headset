@@ -5,7 +5,7 @@
 // I2s defines
 //-------------------------
 #ifndef SCK
-    #define SCK 1
+    #define SCK 3
 #endif //SCK
 
 #ifndef WS
@@ -13,7 +13,7 @@
 #endif //WS
 
 #ifndef SD
-    #define SD 0 // original value 29
+    #define SD 2 // original value 29
 #endif //SD
 
 #ifndef BPS

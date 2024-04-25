@@ -96,6 +96,6 @@ usb_audio_sample i2s_to_usb_sample_convert(uint32_t sample, uint32_t volume_db)
 {
   int64_t sample_tmp = (sample>= 0x800000) ? -(0xFFFFFFFF - sample + 1) : sample;
   sample_tmp = volume_db * sample_tmp;
-  sample_tmp = sample_tmp >> 8;
+  sample_tmp = sample_tmp >> 9;//sample_tmp >> 8;
   return sample_tmp;
 }
