@@ -27,6 +27,8 @@
 #include <string.h>
 
 #include "pico/stdlib.h"
+#include "pico/multicore.h"
+#include "pico/util/queue.h"
 
 #include "usb_headset.h"
 
@@ -62,18 +64,26 @@ typedef struct _current_settings_t {
 
 } current_settings_t;
 
-current_settings_t current_settings;
+typedef enum {
+    CORE1_CMD_RECONFIGURATION,
+    CORE1_CMD_PROCESS_SPK_DATA,
+} core1_command_t;
+
+queue_t core1_call_queue;
+
+volatile current_settings_t current_settings;
 
 // Buffer for microphone data
-i2s_32b_audio_sample mic_i2s_buffer[SAMPLE_BUFFER_SIZE];
-int32_t mic_buf_32b[CFG_TUD_AUDIO_FUNC_1_EP_IN_SW_BUF_SZ / 4];
-int16_t mic_buf_16b[CFG_TUD_AUDIO_FUNC_1_EP_IN_SW_BUF_SZ / 2];
-uint16_t usb_mic_data_size;
+volatile i2s_32b_audio_sample mic_i2s_buffer[SAMPLE_BUFFER_SIZE];
+volatile int32_t mic_buf_32b[CFG_TUD_AUDIO_FUNC_1_EP_IN_SW_BUF_SZ / 4];
+volatile int16_t mic_buf_16b[CFG_TUD_AUDIO_FUNC_1_EP_IN_SW_BUF_SZ / 2];
+volatile uint16_t usb_mic_data_size;
 // Buffer for speaker data
 //i2s_32b_audio_sample spk_i2s_buffer[SAMPLE_BUFFER_SIZE];
-i2s_32b_audio_sample spk_32b_i2s_buffer[SAMPLE_BUFFER_SIZE];
-i2s_16b_audio_sample spk_16b_i2s_buffer[SAMPLE_BUFFER_SIZE];
-int32_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 4];
+volatile uint16_t usb_spk_data_size;
+volatile i2s_32b_audio_sample spk_32b_i2s_buffer[SAMPLE_BUFFER_SIZE];
+volatile i2s_16b_audio_sample spk_16b_i2s_buffer[SAMPLE_BUFFER_SIZE];
+volatile int32_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 4];
 
 void led_blinking_task(void);
 
@@ -113,6 +123,8 @@ void usb_headset_tud_audio_rx_done_pre_read_handler(uint8_t rhport, uint16_t n_b
 void usb_headset_tud_audio_tx_done_pre_load_handler(uint8_t rhport, uint8_t itf, uint8_t ep_in, uint8_t cur_alt_setting);
 void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_bytes_copied, uint8_t itf, uint8_t ep_in, uint8_t cur_alt_setting);
 
+void core1_entry();
+
 /*------------- MAIN -------------*/
 int main(void)
 {
@@ -121,6 +133,8 @@ int main(void)
   current_settings.blink_interval_ms = BLINK_NOT_MOUNTED;
 
   usb_mic_data_size = 0;
+
+  multicore_launch_core1(core1_entry);
 
   usb_headset_set_mute_set_handler(usb_headset_mute_handler);
   usb_headset_set_volume_set_handler(usb_headset_volume_handler);
@@ -133,7 +147,11 @@ int main(void)
   usb_headset_set_tud_audio_tx_done_post_load_set_handler(usb_headset_tud_audio_tx_done_post_load_handler);
 
   usb_headset_init();
-  refresh_i2s_connections();
+  //refresh_i2s_connections();
+  //multicore_fifo_push_blocking(CORE1_CMD_RECONFIGURATION);
+  queue_init(&core1_call_queue, sizeof(core1_command_t), 2);
+  core1_command_t cmd = CORE1_CMD_RECONFIGURATION;
+  queue_add_blocking(&core1_call_queue, &cmd);
 
   for(int i=0; i<(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1); i++)
   {
@@ -150,36 +168,36 @@ int main(void)
   }
 }
 
-void usb_headset_mute_handler(int8_t bChannelNumber, int8_t mute_in)
-{
-  current_settings.mute[bChannelNumber] = mute_in;
-  current_settings.volume_db[bChannelNumber] = vol_to_db_convert(current_settings.mute[bChannelNumber], current_settings.volume[bChannelNumber]);
+void core1_rx_done_pre_read();
+
+void core1_entry() {
+  while (1)
+  {
+    // Function pointer is passed to us via the queue_entry_t which also
+    // contains the function parameter.
+    // We provide an int32_t return value by simply pushing it back on the
+    // return queue which also indicates the result is ready.
+
+    core1_command_t cmd;
+
+    queue_remove_blocking(&core1_call_queue, &cmd);
+    switch(cmd)
+    {
+      case CORE1_CMD_RECONFIGURATION:{
+        refresh_i2s_connections();
+        break;
+      }
+      case CORE1_CMD_PROCESS_SPK_DATA:{
+        core1_rx_done_pre_read();
+        break;
+      }
+    }
+  }
+  //while (1)
+  //    tight_loop_contents();
 }
 
-void usb_headset_volume_handler(int8_t bChannelNumber, int16_t volume_in)
-{
-  current_settings.volume[bChannelNumber] = volume_in;
-  current_settings.volume_db[bChannelNumber] = vol_to_db_convert(current_settings.mute[bChannelNumber], current_settings.volume[bChannelNumber]);
-}
-
-void usb_headset_current_sample_rate_handler(uint32_t current_sample_rate_in)
-{
-  current_settings.sample_rate = current_sample_rate_in;
-  refresh_i2s_connections();
-}
-
-void usb_headset_current_resolution_handler(uint8_t current_resolution_in)
-{
-  current_settings.resolution = current_resolution_in;
-  refresh_i2s_connections();
-}
-
-void usb_headset_current_status_set_handler(uint32_t blink_interval_ms_in)
-{
-  current_settings.blink_interval_ms = blink_interval_ms_in;
-}
-
-void usb_headset_tud_audio_rx_done_pre_read_handler(uint8_t rhport, uint16_t n_bytes_received, uint8_t func_id, uint8_t ep_out, uint8_t cur_alt_setting)
+void core1_rx_done_pre_read()
 {
   uint32_t volume_db_master = current_settings.volume_db[0];
   uint32_t volume_db_left = current_settings.volume_db[1];
@@ -187,10 +205,9 @@ void usb_headset_tud_audio_rx_done_pre_read_handler(uint8_t rhport, uint16_t n_b
 
   if(speaker_i2s0 && (current_settings.blink_interval_ms == BLINK_STREAMING)){
     // Speaker data size received in the last frame
-    uint16_t usb_spk_data_size = tud_audio_read(spk_buf, n_bytes_received);
     uint16_t usb_sample_count = 0;
 
-    if (current_settings.resolution == 16)
+    if ((usb_spk_data_size != 0) && (current_settings.resolution == 16))
     {
       int16_t *in = (int16_t *) spk_buf;
       usb_sample_count = usb_spk_data_size/4; // 4 bytes per sample 2b left, 2b right
@@ -227,6 +244,52 @@ void usb_headset_tud_audio_rx_done_pre_read_handler(uint8_t rhport, uint16_t n_b
       machine_i2s_write_stream(speaker_i2s0, (void*)&spk_32b_i2s_buffer[0], usb_sample_count*8);
     }
   }
+  usb_spk_data_size = 0;
+}
+
+void usb_headset_mute_handler(int8_t bChannelNumber, int8_t mute_in)
+{
+  current_settings.mute[bChannelNumber] = mute_in;
+  current_settings.volume_db[bChannelNumber] = vol_to_db_convert(current_settings.mute[bChannelNumber], current_settings.volume[bChannelNumber]);
+}
+
+void usb_headset_volume_handler(int8_t bChannelNumber, int16_t volume_in)
+{
+  current_settings.volume[bChannelNumber] = volume_in;
+  current_settings.volume_db[bChannelNumber] = vol_to_db_convert(current_settings.mute[bChannelNumber], current_settings.volume[bChannelNumber]);
+}
+
+void usb_headset_current_sample_rate_handler(uint32_t current_sample_rate_in)
+{
+  current_settings.sample_rate = current_sample_rate_in;
+  //refresh_i2s_connections();
+  //multicore_fifo_push_blocking(CORE1_CMD_RECONFIGURATION);
+  core1_command_t cmd = CORE1_CMD_RECONFIGURATION;
+  queue_add_blocking(&core1_call_queue, &cmd);
+
+}
+
+void usb_headset_current_resolution_handler(uint8_t current_resolution_in)
+{
+  current_settings.resolution = current_resolution_in;
+  //refresh_i2s_connections();
+  //multicore_fifo_push_blocking(CORE1_CMD_RECONFIGURATION);
+  core1_command_t cmd = CORE1_CMD_RECONFIGURATION;
+  queue_add_blocking(&core1_call_queue, &cmd);
+
+}
+
+void usb_headset_current_status_set_handler(uint32_t blink_interval_ms_in)
+{
+  current_settings.blink_interval_ms = blink_interval_ms_in;
+}
+
+void usb_headset_tud_audio_rx_done_pre_read_handler(uint8_t rhport, uint16_t n_bytes_received, uint8_t func_id, uint8_t ep_out, uint8_t cur_alt_setting)
+{
+  usb_spk_data_size = tud_audio_read(spk_buf, n_bytes_received);
+  //multicore_fifo_push_blocking(CORE1_CMD_PROCESS_SPK_DATA);
+  core1_command_t cmd = CORE1_CMD_PROCESS_SPK_DATA;
+  queue_add_blocking(&core1_call_queue, &cmd);
 }
 
 void usb_headset_tud_audio_tx_done_pre_load_handler(uint8_t rhport, uint8_t itf, uint8_t ep_in, uint8_t cur_alt_setting)
@@ -254,6 +317,7 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
   static int64_t sample_mean_value_sum = 0;
   static int32_t sample_mean_value_cntr = 0;
   static int32_t sample_mean_value = 0;
+  static int32_t sample_mean_value_approx = 0;
   #endif //MIC_INMP441
 
   usb_mic_data_size = 0;
@@ -272,40 +336,47 @@ void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_
           int num_of_frames_read = num_bytes_read/I2S_RX_FRAME_SIZE_IN_BYTES;
 
           #ifndef MIC_INMP441
-          for(uint32_t i = 0; i < num_of_frames_read; i++){
-            uint32_t sample = mic_i2s_buffer[i].left;
-            int32_t sample_tmp = sample;
-            sample_tmp = sample_tmp >> 2;
-            sample_mean_value_sum = sample_mean_value_sum + sample_tmp;
-          }
-          sample_mean_value_cntr = sample_mean_value_cntr + num_of_frames_read;
-          sample_mean_value = sample_mean_value_sum / sample_mean_value_cntr;
-          #endif// MIC_INMP441
+          if(sample_mean_value_cntr >= 48*1000*4)
+              sample_mean_value_approx = sample_mean_value;
+            else
+              sample_mean_value_approx = 0;
+          #endif //MIC_INMP441
 
           for(uint32_t i = 0; i < num_of_frames_read; i++){
             uint32_t sample = mic_i2s_buffer[i].left;
             int32_t sample_tmp = sample;
+
             #ifdef MIC_INMP441
             // Add adjustments for INMP441
-            sample_tmp = sample_tmp & 0xFFFFFF00;
+            sample_tmp = sample_tmp & 0xFFFFFFFF;
             #else // MIC_INMP441
             // Add adjustments for GY-SPH0645
             sample_tmp = sample_tmp >> 2;
-            sample_tmp = sample_tmp - sample_mean_value;
+
+            if(sample_mean_value_cntr < 48*1000*64){
+              sample_mean_value_sum = sample_mean_value_sum + sample_tmp;
+            }
+
+            sample_tmp = sample_tmp - sample_mean_value_approx;
             #endif // MIC_INMP441
+
             if (current_settings.resolution == 16)
             {
-              //mic_buf[i] = ((mic_i2s_buffer[i].left >> 8) + (mic_i2s_buffer[i].right >> 8)) / 2;
               mic_buf_16b[i] = (current_settings.mic_muted_by_user) ? 0 : (sample_tmp >> 9);
             }
             else if (current_settings.resolution == 24)
             {
-              //mic_buf[i] = (mic_i2s_buffer[i].left + mic_i2s_buffer[i].right) / 2;
-
               mic_buf_32b[i] = (current_settings.mic_muted_by_user) ? 0 : (sample_tmp << 7);
             }
           }
           usb_mic_data_size = num_of_frames_read;
+
+          #ifndef MIC_INMP441
+          if(sample_mean_value_cntr <= 48*1000*64){
+            sample_mean_value_cntr += num_of_frames_read;
+            sample_mean_value = sample_mean_value_sum/sample_mean_value_cntr;
+          }
+          #endif// MIC_INMP441
         }
       }
     }
