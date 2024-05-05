@@ -40,7 +40,7 @@ int main(void)
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
 
-  i2s0 = create_machine_i2s(0, SCK, WS, SD, RX, BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, RATE);
+  i2s0 = create_machine_i2s(0, MIC_SCK, MIC_WS, MIC_SD, RX, BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, RATE);
 
   // initialize the USB microphone interface
   usb_microphone_init();

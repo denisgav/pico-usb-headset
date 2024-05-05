@@ -4,17 +4,34 @@
 //-------------------------
 // I2s defines
 //-------------------------
-#ifndef SCK
-    #define SCK 3
-#endif //SCK
+//#define MIC_INMP441
 
-#ifndef WS
-    #define WS (SCK+1) // needs to be SCK +1
-#endif //WS
+#ifdef MIC_INMP441
+    #ifndef MIC_SD
+        #define MIC_SD 14
+    #endif //MIC_SD
 
-#ifndef SD
-    #define SD 2 // original value 29
-#endif //SD
+    #ifndef MIC_SCK
+        #define MIC_SCK 15
+    #endif //MIC_SCK
+
+    #ifndef MIC_WS
+        #define MIC_WS (MIC_SCK+1) // needs to be MIC_SCK +1
+    #endif //MIC_WS
+#else //MIC_INMP441
+    #ifndef MIC_SD
+        #define MIC_SD 10 
+    #endif //MIC_SD
+
+    #ifndef MIC_SCK
+        #define MIC_SCK 11
+    #endif //MIC_SCK
+
+    #ifndef MIC_WS
+        #define MIC_WS (MIC_SCK+1) // needs to be MIC_SCK +1
+    #endif //MIC_WS
+#endif //MIC_INMP441
+
 
 #ifndef BPS
     #define BPS 32 // 24 is not valid in this implementation, but INMP441 outputs 24 bits samples

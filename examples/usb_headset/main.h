@@ -8,11 +8,11 @@
 
 #ifdef MIC_INMP441
     #ifndef MIC_SD
-        #define MIC_SD 2 
+        #define MIC_SD 14
     #endif //MIC_SD
 
     #ifndef MIC_SCK
-        #define MIC_SCK 3
+        #define MIC_SCK 15
     #endif //MIC_SCK
 
     #ifndef MIC_WS
@@ -20,11 +20,11 @@
     #endif //MIC_WS
 #else //MIC_INMP441
     #ifndef MIC_SD
-        #define MIC_SD 8 
+        #define MIC_SD 10 
     #endif //MIC_SD
 
     #ifndef MIC_SCK
-        #define MIC_SCK 9
+        #define MIC_SCK 11
     #endif //MIC_SCK
 
     #ifndef MIC_WS
@@ -41,11 +41,11 @@
 #endif //MIC_RATE_DEF
 
 #ifndef SPK_SD
-    #define SPK_SD 5 
+    #define SPK_SD 2 
 #endif //SPK_SD
 
 #ifndef SPK_SCK
-    #define SPK_SCK 6
+    #define SPK_SCK 3
 #endif //SPK_SCK
 
 #ifndef SPK_WS

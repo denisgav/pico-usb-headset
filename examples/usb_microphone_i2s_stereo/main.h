@@ -4,17 +4,17 @@
 //-------------------------
 // I2s defines
 //-------------------------
+#ifndef SD
+    #define SD 14
+#endif //SD
+
 #ifndef SCK
-    #define SCK 3
+    #define SCK 15
 #endif //SCK
 
 #ifndef WS
     #define WS (SCK+1) // needs to be SCK +1
 #endif //WS
-
-#ifndef SD
-    #define SD 2 // original value 29
-#endif //SD
 
 #ifndef BPS
     #define BPS 32 // 24 is not valid in this implementation, but INMP441 outputs 24 bits samples
