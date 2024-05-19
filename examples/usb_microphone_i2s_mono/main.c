@@ -2,10 +2,11 @@
 #include "pico/stdlib.h"
 #include "pico/machine_i2s.h"
 
-#include "usb_microphone.h"
-
-#include "pico/volume_ctrl.h"
 #include "main.h"
+#include "pico/default_i2s_board_defines.h"
+#include "pico/dc_offset_filter.h"
+
+#include "usb_microphone.h"
 
 //-------------------------
 // Onboard LED
@@ -17,7 +18,7 @@ const uint LED_PIN = PICO_DEFAULT_LED_PIN;
 //-------------------------
 // variables
 //-------------------------
-usb_audio_sample sample_buffer[SAMPLE_BUFFER_SIZE];
+usb_audio_sample sample_buffer[USB_MIC_SAMPLE_BUFFER_SIZE];
 //-------------------------
 
 
@@ -31,7 +32,9 @@ void on_usb_microphone_tx_done();
 // Pointer to I2S handler
 machine_i2s_obj_t* i2s0 = NULL;
 
-usb_audio_sample i2s_to_usb_sample_convert(uint32_t sample, uint32_t volume_db);
+dc_offset_filter_t dc_offset_filter;
+
+usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t sample_idx, uint32_t sample);
 
 int main(void)
 {
@@ -40,7 +43,9 @@ int main(void)
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
 
-  i2s0 = create_machine_i2s(0, MIC_SCK, MIC_WS, MIC_SD, RX, BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, RATE);
+  dc_offset_filter_init(&dc_offset_filter, 4*48*1000);
+
+  i2s0 = create_machine_i2s(0, I2S_MIC_SCK, I2S_MIC_WS, I2S_MIC_SD, RX, I2S_MIC_BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, I2S_MIC_RATE_DEF);
 
   // initialize the USB microphone interface
   usb_microphone_init();
@@ -76,8 +81,7 @@ void on_usb_microphone_tx_ready()
 
 void on_usb_microphone_tx_done()
 {
-  i2s_audio_sample buffer[SAMPLE_BUFFER_SIZE];
-  uint16_t volume_db_left = vol_to_db_convert(mute[0], volume[0]);
+  i2s_32b_audio_sample buffer[USB_MIC_SAMPLE_BUFFER_SIZE];
   if(i2s0) {
     // Read data from microphone
     int num_bytes_read = machine_i2s_read_stream(i2s0, (void*)&buffer[0], sizeof(buffer));
@@ -86,16 +90,28 @@ void on_usb_microphone_tx_done()
       int num_of_frames_read = num_bytes_read/I2S_RX_FRAME_SIZE_IN_BYTES;
       for(uint32_t i = 0; i < num_of_frames_read; i++){
           //sample_buffer[i] = buffer[i*2]>>8;
-          sample_buffer[i] = i2s_to_usb_sample_convert(buffer[i].left, volume_db_left); // TODO: check this value
+          sample_buffer[i] = mic_i2s_to_usb_sample_convert(i, buffer[i].left); // TODO: check this value
       }
     }
   }
 }
 
-usb_audio_sample i2s_to_usb_sample_convert(uint32_t sample, uint32_t volume_db)
+#ifdef I2S_MIC_INMP441
+// Microphone INMP441 is used
+usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t sample_idx, uint32_t sample)
 {
-  int64_t sample_tmp = (sample>= 0x800000) ? -(0xFFFFFFFF - sample + 1) : sample;
-  sample_tmp = volume_db * sample_tmp;
-  sample_tmp = sample_tmp >> 9;//sample_tmp >> 8;
-  return sample_tmp;
+  int32_t sample_tmp = sample;
+  return sample_tmp<<4;
 }
+#else //I2S_MIC_INMP441
+// Microphone SPH0645 is used
+usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t sample_idx, uint32_t sample)
+{
+  int32_t sample_tmp = sample;
+  // Mean value calculations:
+  sample_tmp = dc_offset_filter_main(&dc_offset_filter, sample_tmp, (sample_idx == 0));
+
+  // Return shifted value:
+  return sample_tmp<<4;
+}
+#endif //I2S_MIC_INMP441

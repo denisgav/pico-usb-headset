@@ -1,53 +1,11 @@
-/*
- * The MIT License (MIT)
- *
- * Copyright (c) 2020 Reinhard Panhuber
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- */
-
-/* plot_audio_samples.py requires following modules:
- * $ sudo apt install libportaudio
- * $ pip3 install sounddevice matplotlib
- *
- * Then run
- * $ python3 plot_audio_samples.py
- */
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-
+#include "pico/stdlib.h"
 #include "pico/machine_i2s.h"
 
-#include "tusb.h"
-#include "tusb_config.h"
+#include "main.h"
+#include "pico/default_i2s_board_defines.h"
+#include "pico/dc_offset_filter.h"
 
 #include "usb_microphone.h"
-
-#include "pico/volume_ctrl.h"
-
-
-
-#include "main.h"
 
 //-------------------------
 // Onboard LED
@@ -55,12 +13,6 @@
 const uint LED_PIN = PICO_DEFAULT_LED_PIN;
 //-------------------------
 //-------------------------
-
-//--------------------------------------------------------------------+
-// MACRO CONSTANT TYPEDEF PROTYPES
-//--------------------------------------------------------------------+
-#define SAMPLE_BUFFER_SIZE  (AUDIO_SAMPLE_RATE/1000)
-
 
 
 #if CFG_TUD_AUDIO_ENABLE_ENCODING
@@ -78,10 +30,12 @@ void on_usb_microphone_tx_pre_load(uint8_t rhport, uint8_t itf, uint8_t ep_in, u
 void on_usb_microphone_tx_post_load(uint8_t rhport, uint16_t n_bytes_copied, uint8_t itf, uint8_t ep_in, uint8_t cur_alt_setting);
 //-------------------------
 
-usb_audio_sample i2s_to_usb_sample_convert(uint32_t sample, uint32_t volume_db);
+usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t ch_id, uint32_t sample_idx, uint32_t sample);
 
 // Pointer to I2S handler
 machine_i2s_obj_t* i2s0 = NULL;
+
+dc_offset_filter_t dc_offset_filter[CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX];
 
 /*------------- MAIN -------------*/
 int main(void)
@@ -91,7 +45,12 @@ int main(void)
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
 
-  i2s0 = create_machine_i2s(0, SCK, WS, SD, RX, BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, RATE);
+  for(int ch_id=0; ch_id < CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX; ch_id++){
+    dc_offset_filter_init(&dc_offset_filter[ch_id], 4*48*1000);
+  }
+  
+
+  i2s0 = create_machine_i2s(0, I2S_MIC_SCK, I2S_MIC_WS, I2S_MIC_SD, RX, I2S_MIC_BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, I2S_MIC_RATE_DEF);
 
   usb_microphone_init();
   usb_microphone_set_tx_pre_load_handler(on_usb_microphone_tx_pre_load);
@@ -124,10 +83,7 @@ void on_usb_microphone_tx_pre_load(uint8_t rhport, uint8_t itf, uint8_t ep_in, u
 
 void on_usb_microphone_tx_post_load(uint8_t rhport, uint16_t n_bytes_copied, uint8_t itf, uint8_t ep_in, uint8_t cur_alt_setting)
 {
-  uint16_t volume_db_left = vol_to_db_convert(mute[0], volume[0]);
-  uint16_t volume_db_right = vol_to_db_convert(mute[1], volume[1]);
-
-  i2s_audio_sample buffer[SAMPLE_BUFFER_SIZE];
+  i2s_32b_audio_sample buffer[USB_MIC_SAMPLE_BUFFER_SIZE];
   if(i2s0) {
     // Read data from microphone
     int num_bytes_read = machine_i2s_read_stream(i2s0, (void*)&buffer[0], sizeof(buffer));
@@ -136,13 +92,13 @@ void on_usb_microphone_tx_post_load(uint8_t rhport, uint16_t n_bytes_copied, uin
       int num_of_frames_read = num_bytes_read/I2S_RX_FRAME_SIZE_IN_BYTES;
       for(uint32_t i = 0; i < num_of_frames_read; i++){
         #if CFG_TUD_AUDIO_ENABLE_ENCODING
-          i2s_dummy_buffer[0][i*2] = i2s_to_usb_sample_convert((buffer[i].left), volume_db_left); // TODO: check this value
-          i2s_dummy_buffer[0][i*2+1] = i2s_to_usb_sample_convert((buffer[i].right), volume_db_right); // TODO: check this value
+          i2s_dummy_buffer[0][i*2] = mic_i2s_to_usb_sample_convert(0, i, (buffer[i].left)); // TODO: check this value
+          i2s_dummy_buffer[0][i*2+1] = mic_i2s_to_usb_sample_convert(1, i, (buffer[i].right)); // TODO: check this value
           i2s_dummy_buffer[1][i*2] = 0; // TODO: check this value
           i2s_dummy_buffer[1][i*2+1] = 0; // TODO: check this value
         #else
-          i2s_dummy_buffer[i*4] = i2s_to_usb_sample_convert((buffer[i].left), volume_db_left); // TODO: check this value
-          i2s_dummy_buffer[i*4+1] = i2s_to_usb_sample_convert((buffer[i].right), volume_db_right); // TODO: check this value
+          i2s_dummy_buffer[i*4] = mic_i2s_to_usb_sample_convert(0, i, (buffer[i].left)); // TODO: check this value
+          i2s_dummy_buffer[i*4+1] = mic_i2s_to_usb_sample_convert(1, i, (buffer[i].right)); // TODO: check this value
           i2s_dummy_buffer[i*4+2] = 0; // TODO: check this value
           i2s_dummy_buffer[i*4+3] = 0; // TODO: check this value
         #endif
@@ -151,10 +107,22 @@ void on_usb_microphone_tx_post_load(uint8_t rhport, uint16_t n_bytes_copied, uin
   }
 }
 
-usb_audio_sample i2s_to_usb_sample_convert(uint32_t sample, uint32_t volume_db)
+#ifdef I2S_MIC_INMP441
+// Microphone INMP441 is used
+usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t ch_id, uint32_t sample_idx, uint32_t sample)
 {
-  int64_t sample_tmp = (sample>= 0x800000) ? -(0xFFFFFFFF - sample + 1) : sample;
-  sample_tmp = volume_db * sample_tmp;
-  sample_tmp = sample_tmp >> 9;//sample_tmp >> 8;
-  return sample_tmp;
+  int32_t sample_tmp = sample;
+  return sample_tmp<<4;
 }
+#else //I2S_MIC_INMP441
+// Microphone SPH0645 is used
+usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t ch_id, uint32_t sample_idx, uint32_t sample)
+{
+  int32_t sample_tmp = sample;
+  // Mean value calculations:
+  sample_tmp = dc_offset_filter_main(&dc_offset_filter[ch_id], sample_tmp, (sample_idx == 0));
+
+  // Return shifted value:
+  return sample_tmp<<4;
+}
+#endif //I2S_MIC_INMP441

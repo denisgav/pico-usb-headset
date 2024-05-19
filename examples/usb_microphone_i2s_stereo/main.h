@@ -1,36 +1,8 @@
 #ifndef MAIN__H
 #define MAIN__H
 
-//-------------------------
-// I2s defines
-//-------------------------
-#ifndef SD
-    #define SD 14
-#endif //SD
-
-#ifndef SCK
-    #define SCK 15
-#endif //SCK
-
-#ifndef WS
-    #define WS (SCK+1) // needs to be SCK +1
-#endif //WS
-
-#ifndef BPS
-    #define BPS 32 // 24 is not valid in this implementation, but INMP441 outputs 24 bits samples
-#endif //BPS
-
-#ifndef RATE
-    #define RATE (CFG_TUD_AUDIO_FUNC_1_SAMPLE_RATE)
-#endif //RATE
-
-typedef struct  {
-    uint32_t left;
-    uint32_t right;
-} i2s_audio_sample;
-
 typedef int32_t usb_audio_sample;
 
-//-------------------------
+#define USB_MIC_SAMPLE_BUFFER_SIZE  (I2S_MIC_RATE_DEF/1000) // MAX sample rate divided by 1000. Size of 1 ms sample
 
 #endif //MAIN__H

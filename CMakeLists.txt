@@ -31,6 +31,38 @@ target_link_libraries(pico_volume_ctrl INTERFACE pico_stdlib)
 ###################################################
 
 ###################################################
+# DC offset filter library
+###################################################
+add_library(pico_dc_offset_filter INTERFACE)
+
+target_sources(pico_dc_offset_filter INTERFACE
+    ${CMAKE_CURRENT_LIST_DIR}/src/dc_offset_filter.c
+)
+
+target_include_directories(pico_dc_offset_filter INTERFACE
+    ${CMAKE_CURRENT_LIST_DIR}/src/include
+)
+
+target_link_libraries(pico_dc_offset_filter INTERFACE pico_stdlib)
+###################################################
+
+###################################################
+# Analog microphone library
+###################################################
+add_library(pico_analog_microphone INTERFACE)
+
+target_sources(pico_analog_microphone INTERFACE
+    ${CMAKE_CURRENT_LIST_DIR}/src/analog_microphone.c
+)
+
+target_include_directories(pico_analog_microphone INTERFACE
+    ${CMAKE_CURRENT_LIST_DIR}/src/include
+)
+
+target_link_libraries(pico_analog_microphone INTERFACE pico_stdlib hardware_adc hardware_dma)
+###################################################
+
+###################################################
 # PDM microphone library
 ###################################################
 
@@ -73,8 +105,11 @@ pico_generate_pio_header(pico_i2S_audio ${CMAKE_CURRENT_LIST_DIR}/src/audio_i2s_
 target_link_libraries(pico_i2S_audio INTERFACE pico_stdlib hardware_dma hardware_pio)
 ###################################################
 
+add_subdirectory("examples/hello_analog_microphone")
 add_subdirectory("examples/hello_pdm_microphone")
 add_subdirectory("examples/hello_i2s_microphone")
+
+add_subdirectory("examples/usb_microphone_analog")
 
 add_subdirectory("examples/usb_microphone_pdm_mono")
 add_subdirectory("examples/usb_microphone_pdm_stereo")
