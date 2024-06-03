@@ -3,7 +3,7 @@
 
 #include "main.h"
 #include "pico/default_i2s_board_defines.h"
-#include "pico/dc_offset_filter.h"
+//#include "pico/dc_offset_filter.h"
 
 #include "usb_microphone.h"
 
@@ -35,7 +35,7 @@ usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t ch_id, uint32_t sample_i
 // Pointer to I2S handler
 machine_i2s_obj_t* i2s0 = NULL;
 
-dc_offset_filter_t dc_offset_filter[CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX];
+//dc_offset_filter_t dc_offset_filter[CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX];
 
 /*------------- MAIN -------------*/
 int main(void)
@@ -45,9 +45,9 @@ int main(void)
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
 
-  for(int ch_id=0; ch_id < CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX; ch_id++){
-    dc_offset_filter_init(&dc_offset_filter[ch_id], 4*48*1000);
-  }
+  // for(int ch_id=0; ch_id < CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX; ch_id++){
+  //   dc_offset_filter_init(&dc_offset_filter[ch_id], 4*48*1000);
+  // }
   
 
   i2s0 = create_machine_i2s(0, I2S_MIC_SCK, I2S_MIC_WS, I2S_MIC_SD, RX, I2S_MIC_BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, I2S_MIC_RATE_DEF);
@@ -112,17 +112,17 @@ void on_usb_microphone_tx_post_load(uint8_t rhport, uint16_t n_bytes_copied, uin
 usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t ch_id, uint32_t sample_idx, uint32_t sample)
 {
   int32_t sample_tmp = sample;
-  return sample_tmp<<4;
+  return sample_tmp; //<<4;
 }
 #else //I2S_MIC_INMP441
 // Microphone SPH0645 is used
 usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t ch_id, uint32_t sample_idx, uint32_t sample)
 {
-  int32_t sample_tmp = sample;
+  int32_t sample_tmp = (sample!= 0) ? (sample - I2S_MIC_SPH_DC_OFFSET) : 0;
   // Mean value calculations:
-  sample_tmp = dc_offset_filter_main(&dc_offset_filter[ch_id], sample_tmp, (sample_idx == 0));
+  //sample_tmp = dc_offset_filter_main(&dc_offset_filter, sample_tmp, (sample_idx == 0));
 
   // Return shifted value:
-  return sample_tmp<<4;
+  return sample_tmp; //<<4;
 }
 #endif //I2S_MIC_INMP441

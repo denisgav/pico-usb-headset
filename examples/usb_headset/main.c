@@ -33,6 +33,7 @@
 #include "usb_headset.h"
 
 #include "main.h"
+#include "pico/default_i2s_board_defines.h"
 #include "pico/machine_i2s.h"
 #include "pico/volume_ctrl.h"
 
@@ -91,6 +92,8 @@ int32_t usb_to_i2s_32b_sample_convert(int32_t sample, int32_t volume_db);
 
 int16_t usb_to_i2s_16b_sample_convert(int16_t sample, int32_t volume_db);
 
+usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t ch_id, uint32_t sample_idx, uint32_t sample);
+
 void refresh_i2s_connections()
 {
   usb_mic_data_size = 0;
@@ -100,12 +103,12 @@ void refresh_i2s_connections()
   current_settings.mic_muted_by_user = false;
   current_settings.cur_time_ms = 0;
 
-  speaker_i2s0 = create_machine_i2s(0, SPK_SCK, SPK_WS, SPK_SD, TX, 
+  speaker_i2s0 = create_machine_i2s(0, I2S_SPK_SCK, I2S_SPK_WS, I2S_SPK_SD, TX, 
     ((current_settings.resolution == 16) ? 16 : 32), STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, current_settings.sample_rate);
 
   if(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX != 0) {
-    microphone_i2s1 = create_machine_i2s(1, MIC_SCK, MIC_WS, MIC_SD, RX, 
-      MIC_BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, current_settings.sample_rate);
+    microphone_i2s1 = create_machine_i2s(1, I2S_MIC_SCK, I2S_MIC_WS, I2S_MIC_SD, RX, 
+      I2S_MIC_BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, current_settings.sample_rate);
   }
   
   // update_pio_frequency(speaker_i2s0, current_settings.usb_sample_rate);
@@ -128,7 +131,7 @@ void core1_entry();
 /*------------- MAIN -------------*/
 int main(void)
 {
-  current_settings.sample_rate  = SPK_RATE_DEF;
+  current_settings.sample_rate  = I2S_SPK_RATE_DEF;
   current_settings.resolution = CFG_TUD_AUDIO_FUNC_1_FORMAT_1_RESOLUTION_RX;
   current_settings.blink_interval_ms = BLINK_NOT_MOUNTED;
 
@@ -313,71 +316,28 @@ void usb_headset_tud_audio_tx_done_pre_load_handler(uint8_t rhport, uint8_t itf,
 
 void usb_headset_tud_audio_tx_done_post_load_handler(uint8_t rhport, uint16_t n_bytes_copied, uint8_t itf, uint8_t ep_in, uint8_t cur_alt_setting)
 {
-  #ifndef MIC_INMP441
-  static int64_t sample_mean_value_sum = 0;
-  static int32_t sample_mean_value_cntr = 0;
-  static int32_t sample_mean_value = 0;
-  static int32_t sample_mean_value_approx = 0;
-  #endif //MIC_INMP441
-
   usb_mic_data_size = 0;
   if(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX != 0) {
     if(microphone_i2s1) {
-      uint32_t num_of_available_bytes = ringbuf_available_data(&microphone_i2s1->ring_buffer);
-      uint32_t num_of_samples_to_read = num_of_available_bytes / I2S_RX_FRAME_SIZE_IN_BYTES;
+      int num_bytes_read = machine_i2s_read_stream(microphone_i2s1, (void*)&mic_i2s_buffer[0], current_settings.samples_in_i2s_frame_min*I2S_RX_FRAME_SIZE_IN_BYTES); 
 
-      if(num_of_samples_to_read > current_settings.samples_in_i2s_frame_max)
-        num_of_samples_to_read = current_settings.samples_in_i2s_frame_max;
+      if(num_bytes_read >= I2S_RX_FRAME_SIZE_IN_BYTES) {
+        int num_of_frames_read = num_bytes_read/I2S_RX_FRAME_SIZE_IN_BYTES;
 
-      if(num_of_samples_to_read >= current_settings.samples_in_i2s_frame_min){
-        int num_bytes_read = machine_i2s_read_stream(microphone_i2s1, (void*)&mic_i2s_buffer[0], num_of_samples_to_read*I2S_RX_FRAME_SIZE_IN_BYTES); 
+        for(uint32_t i = 0; i < num_of_frames_read; i++){
+          uint32_t sample = mic_i2s_buffer[i].left;
+          int32_t sample_tmp = mic_i2s_to_usb_sample_convert(0, i, sample);
 
-        if(num_bytes_read >= I2S_RX_FRAME_SIZE_IN_BYTES) {
-          int num_of_frames_read = num_bytes_read/I2S_RX_FRAME_SIZE_IN_BYTES;
-
-          #ifndef MIC_INMP441
-          if(sample_mean_value_cntr >= 48*1000*4)
-              sample_mean_value_approx = sample_mean_value;
-            else
-              sample_mean_value_approx = 0;
-          #endif //MIC_INMP441
-
-          for(uint32_t i = 0; i < num_of_frames_read; i++){
-            uint32_t sample = mic_i2s_buffer[i].left;
-            int32_t sample_tmp = sample;
-
-            #ifdef MIC_INMP441
-            // Add adjustments for INMP441
-            sample_tmp = sample_tmp & 0xFFFFFFFF;
-            #else // MIC_INMP441
-            // Add adjustments for GY-SPH0645
-            sample_tmp = sample_tmp >> 2;
-
-            if(sample_mean_value_cntr < 48*1000*64){
-              sample_mean_value_sum = sample_mean_value_sum + sample_tmp;
-            }
-
-            sample_tmp = sample_tmp - sample_mean_value_approx;
-            #endif // MIC_INMP441
-
-            if (current_settings.resolution == 16)
-            {
-              mic_buf_16b[i] = (current_settings.mic_muted_by_user) ? 0 : (sample_tmp >> 9);
-            }
-            else if (current_settings.resolution == 24)
-            {
-              mic_buf_32b[i] = (current_settings.mic_muted_by_user) ? 0 : (sample_tmp << 7);
-            }
+          if (current_settings.resolution == 16)
+          {
+            mic_buf_16b[i] = (current_settings.mic_muted_by_user) ? 0 : (sample_tmp >> 10);
           }
-          usb_mic_data_size = num_of_frames_read;
-
-          #ifndef MIC_INMP441
-          if(sample_mean_value_cntr <= 48*1000*64){
-            sample_mean_value_cntr += num_of_frames_read;
-            sample_mean_value = sample_mean_value_sum/sample_mean_value_cntr;
+          else if (current_settings.resolution == 24)
+          {
+            mic_buf_32b[i] = (current_settings.mic_muted_by_user) ? 0 : (sample_tmp);
           }
-          #endif// MIC_INMP441
         }
+        usb_mic_data_size = num_of_frames_read;
       }
     }
   }
@@ -398,6 +358,26 @@ int16_t usb_to_i2s_16b_sample_convert(int16_t sample, int32_t volume_db)
   return (int16_t)sample_tmp;
   //return (int16_t)sample;
 }
+
+#ifdef I2S_MIC_INMP441
+// Microphone INMP441 is used
+usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t ch_id, uint32_t sample_idx, uint32_t sample)
+{
+  int32_t sample_tmp = sample;
+  return sample_tmp; //<<4;
+}
+#else //I2S_MIC_INMP441
+// Microphone SPH0645 is used
+usb_audio_sample mic_i2s_to_usb_sample_convert(uint32_t ch_id, uint32_t sample_idx, uint32_t sample)
+{
+  int32_t sample_tmp = (sample!= 0) ? (sample - I2S_MIC_SPH_DC_OFFSET) : 0;
+  // Mean value calculations:
+  //sample_tmp = dc_offset_filter_main(&dc_offset_filter, sample_tmp, (sample_idx == 0));
+
+  // Return shifted value:
+  return sample_tmp; //<<4;
+}
+#endif //I2S_MIC_INMP441
 
 //--------------------------------------------------------------------+
 // BLINKING TASK

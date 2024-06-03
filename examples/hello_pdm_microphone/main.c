@@ -32,10 +32,10 @@ pdm_microphone_config config = {
     .pio = pio0,
 
     // GPIO pin for the PDM DAT signal
-    .gpio_data = 2,
+    .gpio_data = 18,
 
     // GPIO pin for the PDM CLK signal
-    .gpio_clk = 3,
+    .gpio_clk = 19,
 
     // sample rate in Hz
     .sample_rate = AUDIO_SAMPLE_RATE,

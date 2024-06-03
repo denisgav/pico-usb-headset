@@ -31,8 +31,8 @@ pdm_microphone_config config = {
   .pdm_id = 0,
   .dma_irq = DMA_IRQ_0,
   .pio = pio0,
-  .gpio_data = 2,
-  .gpio_clk = 3,
+  .gpio_data = 18,
+  .gpio_clk = 19,
   .sample_rate = SAMPLE_RATE,
   .sample_buffer_size = SAMPLE_BUFFER_SIZE,
 };

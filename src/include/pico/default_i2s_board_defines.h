@@ -5,7 +5,7 @@
 //-------------------------
 // I2s defines
 //-------------------------
-//#define I2S_MIC_INMP441
+#define I2S_MIC_INMP441
 
 #ifdef I2S_MIC_INMP441
     #ifndef I2S_MIC_SD
@@ -20,6 +20,11 @@
         #define I2S_MIC_WS (I2S_MIC_SCK+1) // needs to be I2S_MIC_SCK +1
     #endif //I2S_MIC_WS
 #else //I2S_MIC_INMP441
+    
+    #ifndef I2S_MIC_SPH_DC_OFFSET
+        #define I2S_MIC_SPH_DC_OFFSET 0xf8c80000
+    #endif //I2S_MIC_SPH_DC_OFFSET
+
     #ifndef I2S_MIC_SD
         #define I2S_MIC_SD 10 
     #endif //I2S_MIC_SD

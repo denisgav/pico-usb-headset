@@ -21,10 +21,18 @@ machine_i2s_obj_t* i2s0 = NULL;
 int main() {
     stdio_init_all();
     i2s0 = create_machine_i2s(0, I2S_MIC_SCK, I2S_MIC_WS, I2S_MIC_SD, RX, I2S_MIC_BPS, STEREO, /*ringbuf_len*/SIZEOF_DMA_BUFFER_IN_BYTES, I2S_MIC_RATE_DEF);
-    int32_t buffer[I2S_RX_FRAME_SIZE_IN_BYTES /4];
+    i2s_32b_audio_sample buffer[I2S_MIC_RATE_DEF/1000];
     while (true) {
-        machine_i2s_read_stream(i2s0, (void*)&buffer[0], I2S_RX_FRAME_SIZE_IN_BYTES);
-        printf("%.8x\n", buffer[0]);
-        printf("%.8x\n", buffer[1]);
+        int num_bytes_read = machine_i2s_read_stream(i2s0, (void*)&buffer[0], sizeof(buffer));
+        if(num_bytes_read >= I2S_RX_FRAME_SIZE_IN_BYTES) {
+            int num_of_frames_read = num_bytes_read/I2S_RX_FRAME_SIZE_IN_BYTES;
+            for(uint32_t i = 0; i < num_of_frames_read; i++){
+                #ifdef I2S_MIC_INMP441
+                printf("INMP. #%d: l %.8x, r %.8x\n", i, buffer[i].left, buffer[i].right);
+                #else //I2S_MIC_INMP441
+                printf("SPH. #%d: l %.8x, r %.8x\n", i, buffer[i].left, buffer[i].right);
+                #endif //I2S_MIC_INMP441
+            }
+        }
     }
 }
