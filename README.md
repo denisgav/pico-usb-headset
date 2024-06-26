@@ -11,8 +11,12 @@ Capture audio from a microphone on your [Raspberry Pi Pico](https://www.raspberr
    * PDM
      * [Adafruit PDM MEMS Microphone Breakout](https://www.adafruit.com/product/3492)
    * I2S
+     * inmp441
+     * [Adafruit I2S MEMS Microphone Breakout - SPH0645LM4H] (https://www.adafruit.com/product/3421)
+   * Analog
+     * [Electret Microphone Amplifier - MAX9814 with Auto Gain Control] (https://www.adafruit.com/product/1713)
  * DAC
-   * PCM5102
+   * PCM5102a
 
 ### Default Pinout
 
@@ -23,11 +27,48 @@ Capture audio from a microphone on your [Raspberry Pi Pico](https://www.raspberr
 | 3.3V | VCC |
 | GND | GND |
 | GND | SEL |
-| GPIO 2 | PDM1 DAT |
-| GPIO 3 | PDM1 CLK |
-| GPIO 4 | PDM2 DAT |
-| GPIO 5 | PDM2 CLK |
+| GPIO 18 | PDM1 DAT |
+| GPIO 19 | PDM1 CLK |
+| GPIO 20 | PDM2 DAT |
+| GPIO 21 | PDM2 CLK |
 
+#### INMP441 Microphone
+
+| Raspberry Pi Pico / RP2040 | I2S Microphone |
+| --- | --- |
+| 3.3V | VCC |
+| GND | GND |
+| GPIO 14 | SD |
+| GPIO 15 | SCK |
+| GPIO 16 | WS |
+
+#### SPH0645 Microphone
+
+| Raspberry Pi Pico / RP2040 | I2S Microphone |
+| --- | --- |
+| 3.3V | VCC |
+| GND | GND |
+| GPIO 10 | SD |
+| GPIO 11 | SCK |
+| GPIO 12 | WS |
+
+#### Analog Microphone
+
+| Raspberry Pi Pico / RP2040 | MAX9814 Microphone |
+| --- | --- |
+| 3.3V | VCC |
+| GND | GND |
+| GPIO 26 | OUT |
+
+#### PCM5102a DAC
+
+| Raspberry Pi Pico / RP2040 | I2S DAC |
+| --- | --- |
+| 3.3V | VCC |
+| GND | GND |
+| GPIO 2 | SD |
+| GPIO 3 | SCK |
+| GPIO 4 | WS |
 
 GPIO pins are configurable in examples or API.
 
@@ -62,7 +103,7 @@ make
 ## Acknowledgements
 
 To create this project, following references were used:
- * The [TinyUSB](https://github.com/hathach/tinyusb) library is used in the `usb_microphone_array` and `usb_microphone_array_led` examples.
+ * The [TinyUSB](https://github.com/hathach/tinyusb) library.
  * Machine I2S  https://github.com/sfera-labs/arduino-pico-i2s-audio
  * SK9822 LED https://github.com/raspberrypi/pico-examples/tree/master/pio/ws2812
  * Microphone library for pico https://github.com/ArmDeveloperEcosystem/microphone-library-for-pico.git 
