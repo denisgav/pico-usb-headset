@@ -3,10 +3,16 @@
 #include "pico/volume_ctrl.h"
 
 // List of supported sample rates
+// #if defined(__RX__)
+//   const uint32_t sample_rates[] = {44100, 48000};
+// #else
+//   //const uint32_t sample_rates[] = {44100, 48000, 88200, 96000};
+//   const uint32_t sample_rates[] = {44100, 48000};
+// #endif
 #if defined(__RX__)
-  const uint32_t sample_rates[] = {44100, 48000};
+  const uint32_t sample_rates[] = {16000, 32000, /*44100,*/ 48000};
 #else
-  const uint32_t sample_rates[] = {44100, 48000, 88200, 96000};
+  const uint32_t sample_rates[] = {16000, 32000, /*44100,*/ 48000};
 #endif
 
 uint32_t current_sample_rate  = 48000;
@@ -18,8 +24,11 @@ uint32_t current_sample_rate  = 48000;
 int8_t mute[CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1];       // +1 for master channel 0
 int16_t volume[CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1];    // +1 for master channel 0
 
+// Resolution per format
+const uint8_t resolutions_per_format[CFG_TUD_AUDIO_FUNC_1_N_FORMATS] = {CFG_TUD_AUDIO_FUNC_1_FORMAT_1_RESOLUTION_RX,
+                                                                        CFG_TUD_AUDIO_FUNC_1_FORMAT_2_RESOLUTION_RX};
 // Current resolution, update on format change
-uint8_t current_resolution = CFG_TUD_AUDIO_FUNC_1_RESOLUTION_RX;
+uint8_t current_resolution = CFG_TUD_AUDIO_FUNC_1_FORMAT_1_RESOLUTION_RX;
 
 void audio_task(void);
 
@@ -178,7 +187,7 @@ static bool tud_audio_clock_set_request(uint8_t rhport, audio_control_request_t 
 
     if(usb_speaker_current_sample_rate_set_handler)
     {
-    	usb_speaker_current_sample_rate_set_handler(current_sample_rate);
+      usb_speaker_current_sample_rate_set_handler(current_sample_rate);
     }
 
     TU_LOG1("Clock set current freq: %ld\r\n", current_sample_rate);
@@ -196,7 +205,7 @@ static bool tud_audio_clock_set_request(uint8_t rhport, audio_control_request_t 
 // Helper for feature unit get requests
 static bool tud_audio_feature_unit_get_request(uint8_t rhport, audio_control_request_t const *request)
 {
-  TU_ASSERT(request->bEntityID == UAC2_ENTITY_FEATURE_UNIT);
+  TU_ASSERT(request->bEntityID == UAC2_ENTITY_SPK_FEATURE_UNIT);
 
   if (request->bControlSelector == AUDIO_FU_CTRL_MUTE && request->bRequest == AUDIO_CS_REQ_CUR)
   {
@@ -204,7 +213,7 @@ static bool tud_audio_feature_unit_get_request(uint8_t rhport, audio_control_req
     TU_LOG1("Get channel %u mute %d\r\n", request->bChannelNumber, mute1.bCur);
     return tud_audio_buffer_and_schedule_control_xfer(rhport, (tusb_control_request_t const *)request, &mute1, sizeof(mute1));
   }
-  else if (request->bControlSelector == AUDIO_FU_CTRL_VOLUME)
+  else if (UAC2_ENTITY_SPK_FEATURE_UNIT && request->bControlSelector == AUDIO_FU_CTRL_VOLUME)
   {
     if (request->bRequest == AUDIO_CS_REQ_RANGE)
     {
@@ -237,7 +246,7 @@ static bool tud_audio_feature_unit_set_request(uint8_t rhport, audio_control_req
 {
   (void)rhport;
 
-  TU_ASSERT(request->bEntityID == UAC2_ENTITY_FEATURE_UNIT);
+  TU_ASSERT(request->bEntityID == UAC2_ENTITY_SPK_FEATURE_UNIT);
   TU_VERIFY(request->bRequest == AUDIO_CS_REQ_CUR);
 
   if (request->bControlSelector == AUDIO_FU_CTRL_MUTE)
@@ -248,7 +257,7 @@ static bool tud_audio_feature_unit_set_request(uint8_t rhport, audio_control_req
 
     if(usb_speaker_mute_set_handler)
     {
-    	usb_speaker_mute_set_handler(request->bChannelNumber, mute[request->bChannelNumber]);
+      usb_speaker_mute_set_handler(request->bChannelNumber, mute[request->bChannelNumber]);
     }
 
     TU_LOG1("Set channel %d Mute: %d\r\n", request->bChannelNumber, mute[request->bChannelNumber]);
@@ -263,7 +272,7 @@ static bool tud_audio_feature_unit_set_request(uint8_t rhport, audio_control_req
 
     if(usb_speaker_volume_set_handler)
     {
-    	usb_speaker_volume_set_handler(request->bChannelNumber, volume[request->bChannelNumber]);
+      usb_speaker_volume_set_handler(request->bChannelNumber, volume[request->bChannelNumber]);
     }
 
     TU_LOG1("Set channel %d volume: %d dB\r\n", request->bChannelNumber, volume[request->bChannelNumber] / 256);
@@ -289,7 +298,7 @@ bool tud_audio_get_req_entity_cb(uint8_t rhport, tusb_control_request_t const *p
 
   if (request->bEntityID == UAC2_ENTITY_CLOCK)
     return tud_audio_clock_get_request(rhport, request);
-  if (request->bEntityID == UAC2_ENTITY_FEATURE_UNIT)
+  if (request->bEntityID == UAC2_ENTITY_SPK_FEATURE_UNIT)
     return tud_audio_feature_unit_get_request(rhport, request);
   else
   {
@@ -304,7 +313,7 @@ bool tud_audio_set_req_entity_cb(uint8_t rhport, tusb_control_request_t const *p
 {
   audio_control_request_t const *request = (audio_control_request_t const *)p_request;
 
-  if (request->bEntityID == UAC2_ENTITY_FEATURE_UNIT)
+  if (request->bEntityID == UAC2_ENTITY_SPK_FEATURE_UNIT)
     return tud_audio_feature_unit_set_request(rhport, request, buf);
   if (request->bEntityID == UAC2_ENTITY_CLOCK)
     return tud_audio_clock_set_request(rhport, request, buf);
@@ -321,7 +330,7 @@ bool tud_audio_set_itf_close_EP_cb(uint8_t rhport, tusb_control_request_t const 
   uint8_t const itf = tu_u16_low(tu_le16toh(p_request->wIndex));
   uint8_t const alt = tu_u16_low(tu_le16toh(p_request->wValue));
 
-  if (ITF_NUM_AUDIO_STREAMING == itf && alt == 0)
+  if (ITF_NUM_AUDIO_STREAMING_SPK == itf && alt == 0)
   {
     if(usb_speaker_current_status_set_handler){
       usb_speaker_current_status_set_handler(BLINK_MOUNTED);
@@ -338,7 +347,7 @@ bool tud_audio_set_itf_cb(uint8_t rhport, tusb_control_request_t const * p_reque
   uint8_t const alt = tu_u16_low(tu_le16toh(p_request->wValue));
 
   TU_LOG2("Set interface %d alt %d\r\n", itf, alt);
-  if (ITF_NUM_AUDIO_STREAMING == itf && alt != 0)
+  if (ITF_NUM_AUDIO_STREAMING_SPK == itf && alt != 0)
   {
     if(usb_speaker_current_status_set_handler){
       usb_speaker_current_status_set_handler(BLINK_STREAMING);
@@ -349,11 +358,11 @@ bool tud_audio_set_itf_cb(uint8_t rhport, tusb_control_request_t const * p_reque
   //spk_data_size = 0;
   if(alt != 0)
   {
-    // current_resolution = resolutions_per_format[alt-1];
-    // if(usb_speaker_current_resolution_set_handler)
-    // {
-    // 	usb_speaker_current_resolution_set_handler(current_resolution);
-    // }
+    current_resolution = resolutions_per_format[alt-1];
+    if(usb_speaker_current_resolution_set_handler)
+    {
+    	usb_speaker_current_resolution_set_handler(current_resolution);
+    }
   }
 
   return true;
@@ -384,8 +393,8 @@ bool tud_audio_rx_done_pre_read_cb(uint8_t rhport, uint16_t n_bytes_received, ui
   return true;
 }
 
-// Invoked when received GET_REPORT control request
-// Unused here
+// // Invoked when received GET_REPORT control request
+// // Unused here
 // uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen)
 // {
 //   // TODO not Implemented
@@ -398,8 +407,8 @@ bool tud_audio_rx_done_pre_read_cb(uint8_t rhport, uint16_t n_bytes_received, ui
 //   return 0;
 // }
 
-// Invoked when received SET_REPORT control request or
-// Unused here
+// // Invoked when received SET_REPORT control request or
+// // Unused here
 // void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize)
 // {
 //   // This example doesn't use multiple report and report ID

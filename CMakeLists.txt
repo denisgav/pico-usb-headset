@@ -119,3 +119,4 @@ add_subdirectory("examples/usb_microphone_i2s_stereo")
 
 add_subdirectory("examples/usb_headset")
 add_subdirectory("examples/usb_speaker")
+add_subdirectory("examples/usb_speaker_multiformat")
